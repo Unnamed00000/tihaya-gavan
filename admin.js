@@ -29,7 +29,39 @@ const adminMonthNames = [
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const adminToday = new Date();
 
-let content = mergeContentWithFactoryDefaults(JSON.parse(localStorage.getItem(contentKey) || "null"));
+function getStorageItem(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function setStorageItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function removeStorageItem(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {}
+}
+
+function readStoredContent() {
+  try {
+    return JSON.parse(getStorageItem(contentKey) || "null");
+  } catch {
+    removeStorageItem(contentKey);
+    return null;
+  }
+}
+
+let content = mergeContentWithFactoryDefaults(readStoredContent());
 let activeTab = "phrases";
 let activeDay = 0;
 let adminCalendarYear = adminToday.getFullYear();
@@ -116,19 +148,19 @@ function getCleanContent() {
 
 function persistLocal(message = "Сохранено на этом устройстве.") {
   content = mergeContentWithFactoryDefaults(getCleanContent());
-  localStorage.setItem(contentKey, JSON.stringify(content));
-  localStorage.setItem(contentDraftKey, "1");
-  feedback.textContent = message;
+  const saved = setStorageItem(contentKey, JSON.stringify(content));
+  setStorageItem(contentDraftKey, "1");
+  feedback.textContent = saved ? message : "Можно редактировать и скачать content.json, но этот браузер не дает сохранить черновик.";
   renderAdmin();
 }
 
 function persistDraft() {
-  localStorage.setItem(contentKey, JSON.stringify(getCleanContent()));
-  localStorage.setItem(contentDraftKey, "1");
+  setStorageItem(contentKey, JSON.stringify(getCleanContent()));
+  setStorageItem(contentDraftKey, "1");
 }
 
 async function loadRepoContentForAdmin() {
-  if (localStorage.getItem(contentDraftKey) === "1") {
+  if (getStorageItem(contentDraftKey) === "1") {
     feedback.textContent =
       "Показаны правки, сохраненные на этом устройстве. Чтобы их увидели все клиенты, скачай content.json и загрузи его в папку data на GitHub.";
     return;
@@ -140,7 +172,7 @@ async function loadRepoContentForAdmin() {
     if (!response.ok) throw new Error("content.json не найден");
     const repoContent = await response.json();
     content = mergeContentWithFactoryDefaults(repoContent);
-    localStorage.setItem(contentKey, JSON.stringify(content));
+    setStorageItem(contentKey, JSON.stringify(content));
     feedback.textContent = "Материал загружен из content.json. Можно редактировать.";
     renderAdmin();
   } catch {
@@ -150,8 +182,8 @@ async function loadRepoContentForAdmin() {
 
 function downloadContentJson() {
   content = mergeContentWithFactoryDefaults(getCleanContent());
-  localStorage.setItem(contentKey, JSON.stringify(content));
-  localStorage.setItem(contentDraftKey, "1");
+  setStorageItem(contentKey, JSON.stringify(content));
+  setStorageItem(contentDraftKey, "1");
 
   const blob = new Blob([JSON.stringify(content, null, 2) + "\n"], { type: "application/json" });
   const link = document.createElement("a");
@@ -168,8 +200,8 @@ function importContentJson(file) {
   reader.addEventListener("load", () => {
     try {
       content = mergeContentWithFactoryDefaults(JSON.parse(reader.result));
-      localStorage.setItem(contentKey, JSON.stringify(content));
-      localStorage.setItem(contentDraftKey, "1");
+      setStorageItem(contentKey, JSON.stringify(content));
+      setStorageItem(contentDraftKey, "1");
       feedback.textContent = "content.json загружен в админку.";
       renderAdmin();
     } catch {
@@ -548,8 +580,8 @@ importInput.addEventListener("change", () => importContentJson(importInput.files
 
 resetButton.addEventListener("click", () => {
   content = clone(factoryDefaults);
-  localStorage.removeItem(contentKey);
-  localStorage.removeItem(contentDraftKey);
+  removeStorageItem(contentKey);
+  removeStorageItem(contentDraftKey);
   feedback.textContent = "Сброшено к начальному материалу.";
   renderAdmin();
 });
