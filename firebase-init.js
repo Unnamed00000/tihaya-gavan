@@ -10,11 +10,21 @@ const firebaseConfig = {
 
 window.chechenLearningFirebase = {
   app: null,
+  auth: null,
   analytics: null,
+  db: null,
 };
 
 if (window.firebase) {
   window.chechenLearningFirebase.app = firebase.initializeApp(firebaseConfig);
+
+  if (firebase.firestore) {
+    window.chechenLearningFirebase.db = firebase.firestore();
+  }
+
+  if (firebase.auth) {
+    window.chechenLearningFirebase.auth = firebase.auth();
+  }
 
   if (location.protocol !== "file:" && firebase.analytics) {
     firebase.analytics.isSupported().then((isSupported) => {

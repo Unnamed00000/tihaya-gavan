@@ -1,5 +1,7 @@
 const contentKey = window.tihayaContentStorageKey || "tihayaContent";
 const factoryDefaults = window.tihayaFactoryDefaults || { soundUnits: [], phrases: [] };
+const cloudPath = window.tihayaCloudContentPath || { collection: "tihaya", document: "content" };
+const adminEmail = "adam.margoev@gmail.com";
 
 let content = JSON.parse(localStorage.getItem(contentKey) || "null") || JSON.parse(JSON.stringify(factoryDefaults));
 let activeTab = "phrases";
@@ -9,10 +11,104 @@ const soundSection = document.querySelector("#admin-sounds");
 const audioSection = document.querySelector("#admin-audio");
 const audioList = document.querySelector("#admin-audio-list");
 const feedback = document.querySelector("#admin-feedback");
+const loginButton = document.querySelector("#admin-login");
+const logoutButton = document.querySelector("#admin-logout");
 
-function saveContent() {
+function getAuth() {
+  return window.chechenLearningFirebase?.auth;
+}
+
+function updateAuthControls(user) {
+  const isAdmin = user?.email?.toLowerCase() === adminEmail;
+  loginButton.classList.toggle("is-hidden", Boolean(user));
+  logoutButton.classList.toggle("is-hidden", !user);
+  document.querySelector("#save-content").disabled = !isAdmin;
+
+  if (user && isAdmin) {
+    feedback.textContent = `Вход выполнен: ${user.email}. Можно сохранять в Firebase.`;
+  } else if (user) {
+    feedback.textContent = `Вход выполнен: ${user.email}. Этот аккаунт не может сохранять материал.`;
+  } else {
+    feedback.textContent = "Войди через Google-аккаунт администратора, чтобы сохранять изменения в Firebase.";
+  }
+}
+
+async function signInAdmin() {
+  const auth = getAuth();
+  if (!auth || !firebase.auth) {
+    feedback.textContent = "Firebase Auth не подключился. Обнови страницу и попробуй снова.";
+    return null;
+  }
+
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ login_hint: adminEmail });
+
+  try {
+    const result = await auth.signInWithPopup(provider);
+    return result.user;
+  } catch (error) {
+    feedback.textContent = `Не получилось войти: ${error.message}`;
+    return null;
+  }
+}
+
+async function saveContent() {
   localStorage.setItem(contentKey, JSON.stringify(content));
-  feedback.textContent = "Сохранено. Клиентская страница теперь возьмет этот материал.";
+
+  const db = window.chechenLearningFirebase?.db;
+  if (!db) {
+    feedback.textContent = "Сохранено только в этом браузере. Firebase Firestore не подключился.";
+    return;
+  }
+
+  const auth = getAuth();
+  const user = auth?.currentUser || (await signInAdmin());
+  if (user?.email?.toLowerCase() !== adminEmail) {
+    feedback.textContent = "Сохранять в Firebase может только аккаунт администратора.";
+    return;
+  }
+
+  try {
+    await db.collection(cloudPath.collection).doc(cloudPath.document).set({
+      soundUnits: content.soundUnits,
+      phrases: content.phrases,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    feedback.textContent = "Сохранено в Firebase. Клиентская страница загрузит эти данные.";
+  } catch (error) {
+    feedback.textContent = `Не получилось сохранить в Firebase: ${error.message}`;
+  }
+}
+
+async function loadCloudContentForAdmin() {
+  const db = window.chechenLearningFirebase?.db;
+  if (!db) {
+    feedback.textContent = "Firebase Firestore не подключился. Пока показана локальная копия.";
+    return;
+  }
+
+  try {
+    feedback.textContent = "Загружаю материал из Firebase...";
+    const snapshot = await db.collection(cloudPath.collection).doc(cloudPath.document).get();
+
+    if (snapshot.exists) {
+      const cloudContent = snapshot.data();
+      if (cloudContent?.soundUnits?.length && cloudContent?.phrases?.length) {
+        content = {
+          soundUnits: cloudContent.soundUnits,
+          phrases: cloudContent.phrases,
+        };
+        localStorage.setItem(contentKey, JSON.stringify(content));
+        feedback.textContent = "Материал загружен из Firebase.";
+        renderAdmin();
+        return;
+      }
+    }
+
+    feedback.textContent = "В Firebase пока нет материала. Нажми “Сохранить”, чтобы отправить текущий материал.";
+  } catch (error) {
+    feedback.textContent = `Не получилось загрузить из Firebase: ${error.message}`;
+  }
 }
 
 function makeField(labelText, value, onInput, type = "text") {
@@ -255,6 +351,10 @@ document.querySelector("#add-sound").addEventListener("click", () => {
 });
 
 document.querySelector("#save-content").addEventListener("click", saveContent);
+loginButton.addEventListener("click", signInAdmin);
+logoutButton.addEventListener("click", () => {
+  getAuth()?.signOut();
+});
 
 document.querySelector("#reset-content").addEventListener("click", () => {
   content = JSON.parse(JSON.stringify(factoryDefaults));
@@ -264,3 +364,6 @@ document.querySelector("#reset-content").addEventListener("click", () => {
 });
 
 renderAdmin();
+loadCloudContentForAdmin();
+getAuth()?.onAuthStateChanged(updateAuthControls);
+updateAuthControls(getAuth()?.currentUser);

@@ -327,9 +327,15 @@ const todayIndex = browserDay === 0 ? 6 : browserDay - 1;
 const isWeekend = todayIndex > 4;
 const availableDayLimit = isWeekend ? 4 : Math.min(todayIndex, 4);
 const contentStorageKey = "tihayaContent";
+const cloudContentCollection = "tihaya";
+const cloudContentDocument = "content";
 
 window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases }));
 window.tihayaContentStorageKey = contentStorageKey;
+window.tihayaCloudContentPath = {
+  collection: cloudContentCollection,
+  document: cloudContentDocument,
+};
 
 try {
   const savedContent = JSON.parse(localStorage.getItem(contentStorageKey) || "null");
@@ -340,6 +346,12 @@ try {
 }
 
 window.tihayaContent = { soundUnits, phrases };
+
+function applySharedContent(content) {
+  if (content?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...content.soundUnits);
+  if (content?.phrases?.length) phrases.splice(0, phrases.length, ...content.phrases);
+  window.tihayaContent = { soundUnits, phrases };
+}
 
 const state = {
   category: "all",
@@ -609,6 +621,30 @@ function renderMonthCalendar() {
   }
 }
 
+async function loadCloudContent() {
+  const db = window.chechenLearningFirebase?.db;
+  if (!db) return;
+
+  try {
+    const snapshot = await db.collection(cloudContentCollection).doc(cloudContentDocument).get();
+    if (!snapshot.exists) return;
+
+    const cloudContent = snapshot.data();
+    applySharedContent(cloudContent);
+    localStorage.setItem(contentStorageKey, JSON.stringify({ soundUnits, phrases }));
+    updateScheduleCopy();
+    updateStats();
+    renderSoundUnits();
+    renderMonthCalendar();
+    if (!lessonContent.classList.contains("is-hidden")) {
+      renderPhrases();
+      newQuestion();
+    }
+  } catch {
+    // Keep the bundled or locally saved content if Firebase is not ready yet.
+  }
+}
+
 function speak(phrase) {
   if (!phrase.audioUrl) return;
   const audio = new Audio(phrase.audioUrl);
@@ -786,6 +822,7 @@ if (phraseGrid) {
   updateStats();
   renderSoundUnits();
   renderMonthCalendar();
+  loadCloudContent();
 }
 
 let deferredInstallPrompt = null;
