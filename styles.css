@@ -948,6 +948,12 @@ h1 {
   line-height: 1.35;
 }
 
+.creator-heart {
+  color: var(--red);
+  font-size: 13px;
+  line-height: 1;
+}
+
 .setting-group,
 .setting-range {
   display: grid;
