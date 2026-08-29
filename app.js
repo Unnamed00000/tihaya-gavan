@@ -340,9 +340,8 @@ const isWeekend = todayIndex > 4;
 const availableDayLimit = isWeekend ? 4 : Math.min(todayIndex, 4);
 const contentStorageKey = "tihayaContent";
 const settingsStorageKey = "tihayaSettings";
-const cloudContentCollection = "tihaya";
-const cloudContentDocument = "content";
-const appVersion = "1.1.7";
+const remoteContentUrl = "./content.json";
+const appVersion = "2.0.0";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63" },
@@ -375,10 +374,7 @@ function addMissingDefaultSoundUnits() {
 
 window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases }));
 window.tihayaContentStorageKey = contentStorageKey;
-window.tihayaCloudContentPath = {
-  collection: cloudContentCollection,
-  document: cloudContentDocument,
-};
+window.tihayaRemoteContentUrl = remoteContentUrl;
 
 try {
   const savedContent = JSON.parse(localStorage.getItem(contentStorageKey) || "null");
@@ -801,16 +797,12 @@ function renderMonthCalendar() {
   }
 }
 
-async function loadCloudContent() {
-  const db = window.chechenLearningFirebase?.db;
-  if (!db) return;
-
+async function loadRemoteContent() {
   try {
-    const snapshot = await db.collection(cloudContentCollection).doc(cloudContentDocument).get();
-    if (!snapshot.exists) return;
-
-    const cloudContent = snapshot.data();
-    applySharedContent(cloudContent);
+    const response = await fetch(`${remoteContentUrl}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) return;
+    const remoteContent = await response.json();
+    applySharedContent(remoteContent);
     localStorage.setItem(contentStorageKey, JSON.stringify({ soundUnits, phrases }));
     updateScheduleCopy();
     updateStats();
@@ -821,7 +813,7 @@ async function loadCloudContent() {
       newQuestion();
     }
   } catch {
-    // Keep the bundled or locally saved content if Firebase is not ready yet.
+    // Keep the bundled or locally saved content when GitHub content.json is not available locally.
   }
 }
 
@@ -1049,7 +1041,7 @@ if (phraseGrid) {
   renderSoundUnits();
   renderMonthCalendar();
   syncViewToRoute();
-  loadCloudContent();
+  loadRemoteContent();
   window.addEventListener("popstate", syncViewToRoute);
   window.addEventListener("hashchange", syncViewToRoute);
 }

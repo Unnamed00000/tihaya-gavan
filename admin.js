@@ -1,18 +1,35 @@
 const contentKey = window.tihayaContentStorageKey || "tihayaContent";
 const factoryDefaults = window.tihayaFactoryDefaults || { soundUnits: [], phrases: [] };
-const cloudPath = window.tihayaCloudContentPath || { collection: "tihaya", document: "content" };
-const adminEmail = "adam.margoev@gmail.com";
+const remoteContentUrl = window.tihayaRemoteContentUrl || "./content.json";
+const dayOptions = [
+  { value: 0, short: "Пн", label: "Понедельник", mode: "lesson" },
+  { value: 1, short: "Вт", label: "Вторник", mode: "lesson" },
+  { value: 2, short: "Ср", label: "Среда", mode: "lesson" },
+  { value: 3, short: "Чт", label: "Четверг", mode: "lesson" },
+  { value: 4, short: "Пт", label: "Пятница", mode: "lesson" },
+  { value: 5, short: "Сб", label: "Суббота", mode: "review" },
+  { value: 6, short: "Вс", label: "Воскресенье", mode: "review" },
+];
 
-let content = JSON.parse(localStorage.getItem(contentKey) || "null") || JSON.parse(JSON.stringify(factoryDefaults));
+const clone = (value) => JSON.parse(JSON.stringify(value));
+
+let content = mergeContentWithFactoryDefaults(JSON.parse(localStorage.getItem(contentKey) || "null"));
 let activeTab = "phrases";
+let activeDay = 0;
 
 const phraseSection = document.querySelector("#admin-phrases");
 const soundSection = document.querySelector("#admin-sounds");
 const audioSection = document.querySelector("#admin-audio");
 const audioList = document.querySelector("#admin-audio-list");
+const dayGrid = document.querySelector("#admin-day-grid");
+const daySummary = document.querySelector("#admin-day-summary");
 const feedback = document.querySelector("#admin-feedback");
-const loginButton = document.querySelector("#admin-login");
-const logoutButton = document.querySelector("#admin-logout");
+const addPhraseButton = document.querySelector("#add-phrase");
+const addSoundButton = document.querySelector("#add-sound");
+const saveButton = document.querySelector("#save-content");
+const exportButton = document.querySelector("#export-content");
+const resetButton = document.querySelector("#reset-content");
+const importInput = document.querySelector("#import-content");
 
 function getSoundKey(unit) {
   return `${unit.title || ""}|${unit.formula || ""}`.toLocaleLowerCase("ru-RU");
@@ -20,114 +37,92 @@ function getSoundKey(unit) {
 
 function mergeContentWithFactoryDefaults(nextContent) {
   const mergedContent = {
-    soundUnits: nextContent?.soundUnits?.length ? nextContent.soundUnits : JSON.parse(JSON.stringify(factoryDefaults.soundUnits)),
-    phrases: nextContent?.phrases?.length ? nextContent.phrases : JSON.parse(JSON.stringify(factoryDefaults.phrases)),
+    soundUnits: nextContent?.soundUnits?.length ? nextContent.soundUnits : clone(factoryDefaults.soundUnits),
+    phrases: nextContent?.phrases?.length ? nextContent.phrases : clone(factoryDefaults.phrases),
   };
   const existingKeys = new Set(mergedContent.soundUnits.map(getSoundKey));
 
   factoryDefaults.soundUnits.forEach((unit) => {
     if (!existingKeys.has(getSoundKey(unit))) {
-      mergedContent.soundUnits.push(JSON.parse(JSON.stringify(unit)));
+      mergedContent.soundUnits.push(clone(unit));
     }
   });
 
   return mergedContent;
 }
 
-content = mergeContentWithFactoryDefaults(content);
-
-function getAuth() {
-  return window.chechenLearningFirebase?.auth;
+function getCleanContent() {
+  return {
+    soundUnits: content.soundUnits.map((unit) => ({
+      formula: unit.formula || "",
+      title: unit.title || "",
+      hint: unit.hint || "",
+      example: unit.example || "",
+      audioUrl: unit.audioUrl || "",
+    })),
+    phrases: content.phrases.map((phrase) => ({
+      id: phrase.id || `phrase-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      day: Number(phrase.day) || 0,
+      category: phrase.category || "talk",
+      tag: phrase.tag || "Разговор",
+      russian: phrase.russian || "",
+      chechen: phrase.chechen || "",
+      pronunciation: phrase.pronunciation || "",
+      query: phrase.query || "",
+      audioUrl: phrase.audioUrl || "",
+    })),
+  };
 }
 
-function updateAuthControls(user) {
-  const isAdmin = user?.email?.toLowerCase() === adminEmail;
-  loginButton.classList.toggle("is-hidden", Boolean(user));
-  logoutButton.classList.toggle("is-hidden", !user);
-  document.querySelector("#save-content").disabled = !isAdmin;
-
-  if (user && isAdmin) {
-    feedback.textContent = `Вход выполнен: ${user.email}. Можно сохранять в Firebase.`;
-  } else if (user) {
-    feedback.textContent = `Вход выполнен: ${user.email}. Этот аккаунт не может сохранять материал.`;
-  } else {
-    feedback.textContent = "Войди через Google-аккаунт администратора, чтобы сохранять изменения в Firebase.";
-  }
+function persistLocal(message = "Сохранено на этом устройстве.") {
+  content = mergeContentWithFactoryDefaults(getCleanContent());
+  localStorage.setItem(contentKey, JSON.stringify(content));
+  feedback.textContent = message;
+  renderAdmin();
 }
 
-async function signInAdmin() {
-  const auth = getAuth();
-  if (!auth || !firebase.auth) {
-    feedback.textContent = "Firebase Auth не подключился. Обнови страницу и попробуй снова.";
-    return null;
-  }
-
-  const provider = new firebase.auth.GoogleAuthProvider();
-  provider.setCustomParameters({ login_hint: adminEmail });
-
+async function loadRepoContentForAdmin() {
   try {
-    const result = await auth.signInWithPopup(provider);
-    return result.user;
-  } catch (error) {
-    feedback.textContent = `Не получилось войти: ${error.message}`;
-    return null;
+    feedback.textContent = "Загружаю content.json из GitHub Pages...";
+    const response = await fetch(`${remoteContentUrl}?v=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("content.json не найден");
+    const repoContent = await response.json();
+    content = mergeContentWithFactoryDefaults(repoContent);
+    localStorage.setItem(contentKey, JSON.stringify(content));
+    feedback.textContent = "Материал загружен из content.json. Можно редактировать.";
+    renderAdmin();
+  } catch {
+    feedback.textContent = "Показана локальная копия. Для общей публикации скачай content.json и загрузи его в GitHub.";
   }
 }
 
-async function saveContent() {
+function downloadContentJson() {
+  content = mergeContentWithFactoryDefaults(getCleanContent());
   localStorage.setItem(contentKey, JSON.stringify(content));
 
-  const db = window.chechenLearningFirebase?.db;
-  if (!db) {
-    feedback.textContent = "Сохранено только в этом браузере. Firebase Firestore не подключился.";
-    return;
-  }
-
-  const auth = getAuth();
-  const user = auth?.currentUser || (await signInAdmin());
-  if (user?.email?.toLowerCase() !== adminEmail) {
-    feedback.textContent = "Сохранять в Firebase может только аккаунт администратора.";
-    return;
-  }
-
-  try {
-    await db.collection(cloudPath.collection).doc(cloudPath.document).set({
-      soundUnits: content.soundUnits,
-      phrases: content.phrases,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    feedback.textContent = "Сохранено в Firebase. Клиентская страница загрузит эти данные.";
-  } catch (error) {
-    feedback.textContent = `Не получилось сохранить в Firebase: ${error.message}`;
-  }
+  const blob = new Blob([JSON.stringify(content, null, 2) + "\n"], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "content.json";
+  link.click();
+  URL.revokeObjectURL(link.href);
+  feedback.textContent = "Файл content.json скачан. Загрузи его в корень GitHub-репозитория.";
 }
 
-async function loadCloudContentForAdmin() {
-  const db = window.chechenLearningFirebase?.db;
-  if (!db) {
-    feedback.textContent = "Firebase Firestore не подключился. Пока показана локальная копия.";
-    return;
-  }
-
-  try {
-    feedback.textContent = "Загружаю материал из Firebase...";
-    const snapshot = await db.collection(cloudPath.collection).doc(cloudPath.document).get();
-
-    if (snapshot.exists) {
-      const cloudContent = snapshot.data();
-      if (cloudContent?.soundUnits?.length && cloudContent?.phrases?.length) {
-        content = mergeContentWithFactoryDefaults(cloudContent);
-        localStorage.setItem(contentKey, JSON.stringify(content));
-        feedback.textContent = "Материал загружен из Firebase.";
-        renderAdmin();
-        return;
-      }
+function importContentJson(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    try {
+      content = mergeContentWithFactoryDefaults(JSON.parse(reader.result));
+      localStorage.setItem(contentKey, JSON.stringify(content));
+      feedback.textContent = "content.json загружен в админку.";
+      renderAdmin();
+    } catch {
+      feedback.textContent = "Не получилось прочитать JSON. Проверь файл content.json.";
     }
-
-    feedback.textContent = "В Firebase пока нет материала. Нажми “Сохранить”, чтобы отправить текущий материал.";
-  } catch (error) {
-    feedback.textContent = `Не получилось загрузить из Firebase: ${error.message}`;
-  }
+  });
+  reader.readAsText(file);
 }
 
 function makeField(labelText, value, onInput, type = "text") {
@@ -167,10 +162,65 @@ function makeSelect(labelText, value, options, onInput) {
   return label;
 }
 
+function renderDayBoard() {
+  dayGrid.innerHTML = "";
+
+  dayOptions.forEach((day) => {
+    const phrasesForDay = content.phrases.filter((phrase) => Number(phrase.day) === day.value);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "admin-day";
+    button.classList.toggle("is-active", activeDay === day.value);
+    button.classList.toggle("is-review", day.mode === "review");
+    button.innerHTML = `
+      <span>${day.short}</span>
+      <strong>${day.label}</strong>
+      <em>${day.mode === "review" ? "повторение" : `${phrasesForDay.length}/5 слов`}</em>
+    `;
+    button.addEventListener("click", () => {
+      activeDay = day.value;
+      renderAdmin();
+    });
+    dayGrid.append(button);
+  });
+}
+
+function getActivePhrasesWithIndex() {
+  return content.phrases
+    .map((phrase, index) => ({ phrase, index }))
+    .filter(({ phrase }) => activeDay > 4 || Number(phrase.day) === activeDay);
+}
+
+function renderDaySummary() {
+  const day = dayOptions.find((item) => item.value === activeDay);
+  const weekdayCounts = dayOptions
+    .slice(0, 5)
+    .map((item) => content.phrases.filter((phrase) => Number(phrase.day) === item.value).length);
+  const totalWeekPhrases = weekdayCounts.reduce((sum, count) => sum + count, 0);
+
+  if (activeDay > 4) {
+    daySummary.innerHTML = `<strong>${day.label}: повторение</strong><span>Клиент увидит все слова недели: ${totalWeekPhrases}. Новые слова в выходные не добавляются.</span>`;
+  } else {
+    const currentCount = weekdayCounts[activeDay];
+    daySummary.innerHTML = `<strong>${day.label}</strong><span>Для этого дня желательно 5 слов. Сейчас: ${currentCount}/5.</span>`;
+  }
+
+  addPhraseButton.disabled = activeDay > 4;
+}
+
 function renderPhrasesAdmin() {
   phraseSection.innerHTML = "";
+  const visiblePhrases = getActivePhrasesWithIndex();
 
-  content.phrases.forEach((phrase, index) => {
+  if (!visiblePhrases.length) {
+    const empty = document.createElement("article");
+    empty.className = "admin-edit-card";
+    empty.innerHTML = "<h2>Слов пока нет</h2><p>Выбери день с понедельника по пятницу и нажми “Добавить слово”.</p>";
+    phraseSection.append(empty);
+    return;
+  }
+
+  visiblePhrases.forEach(({ phrase, index }) => {
     const card = document.createElement("article");
     card.className = "admin-edit-card";
 
@@ -180,20 +230,10 @@ function renderPhrasesAdmin() {
     const fields = document.createElement("div");
     fields.className = "admin-field-grid";
     fields.append(
-      makeSelect(
-        "День",
-        phrase.day,
-        [
-          { value: 0, label: "Понедельник" },
-          { value: 1, label: "Вторник" },
-          { value: 2, label: "Среда" },
-          { value: 3, label: "Четверг" },
-          { value: 4, label: "Пятница" },
-        ],
-        (value) => {
-          phrase.day = Number(value);
-        },
-      ),
+      makeSelect("День", phrase.day, dayOptions.slice(0, 5), (value) => {
+        phrase.day = Number(value);
+        renderAdmin();
+      }),
       makeSelect(
         "Категория",
         phrase.category,
@@ -303,7 +343,7 @@ function renderAudioAdmin() {
 
     const input = document.createElement("input");
     input.type = "url";
-    input.placeholder = "https://raw.githubusercontent.com/...";
+    input.placeholder = "https://raw.githubusercontent.com/.../audio/salam.mp3";
     input.value = item.audioUrl || "";
     input.addEventListener("input", () => {
       item.audioUrl = input.value;
@@ -316,7 +356,7 @@ function renderAudioAdmin() {
     test.addEventListener("click", () => {
       if (!item.audioUrl) return;
       new Audio(item.audioUrl).play().catch(() => {
-        feedback.textContent = "Не получилось проиграть аудио. Проверь ссылку Raw из GitHub.";
+        feedback.textContent = "Не получилось проиграть аудио. Проверь Raw-ссылку из GitHub.";
       });
     });
 
@@ -326,9 +366,14 @@ function renderAudioAdmin() {
 }
 
 function renderAdmin() {
+  renderDayBoard();
+  renderDaySummary();
   renderPhrasesAdmin();
   renderSoundsAdmin();
   renderAudioAdmin();
+  phraseSection.classList.toggle("is-hidden", activeTab !== "phrases");
+  soundSection.classList.toggle("is-hidden", activeTab !== "sounds");
+  audioSection.classList.toggle("is-hidden", activeTab !== "audio");
 }
 
 document.querySelectorAll("[data-admin-tab]").forEach((button) => {
@@ -337,16 +382,15 @@ document.querySelectorAll("[data-admin-tab]").forEach((button) => {
     document.querySelectorAll("[data-admin-tab]").forEach((tab) => {
       tab.classList.toggle("is-active", tab === button);
     });
-    phraseSection.classList.toggle("is-hidden", activeTab !== "phrases");
-    soundSection.classList.toggle("is-hidden", activeTab !== "sounds");
-    audioSection.classList.toggle("is-hidden", activeTab !== "audio");
+    renderAdmin();
   });
 });
 
-document.querySelector("#add-phrase").addEventListener("click", () => {
+addPhraseButton.addEventListener("click", () => {
+  if (activeDay > 4) return;
   content.phrases.push({
     id: `phrase-${Date.now()}`,
-    day: 0,
+    day: activeDay,
     category: "talk",
     tag: "Разговор",
     russian: "",
@@ -358,7 +402,7 @@ document.querySelector("#add-phrase").addEventListener("click", () => {
   renderAdmin();
 });
 
-document.querySelector("#add-sound").addEventListener("click", () => {
+addSoundButton.addEventListener("click", () => {
   content.soundUnits.push({
     formula: "",
     title: "",
@@ -366,23 +410,26 @@ document.querySelector("#add-sound").addEventListener("click", () => {
     example: "",
     audioUrl: "",
   });
+  activeTab = "sounds";
+  document.querySelectorAll("[data-admin-tab]").forEach((tab) => {
+    tab.classList.toggle("is-active", tab.dataset.adminTab === "sounds");
+  });
   renderAdmin();
 });
 
-document.querySelector("#save-content").addEventListener("click", saveContent);
-loginButton.addEventListener("click", signInAdmin);
-logoutButton.addEventListener("click", () => {
-  getAuth()?.signOut();
+saveButton.addEventListener("click", () => {
+  persistLocal("Сохранено на этом устройстве. Для клиентов скачай content.json и загрузи его в GitHub.");
 });
 
-document.querySelector("#reset-content").addEventListener("click", () => {
-  content = JSON.parse(JSON.stringify(factoryDefaults));
+exportButton.addEventListener("click", downloadContentJson);
+importInput.addEventListener("change", () => importContentJson(importInput.files?.[0]));
+
+resetButton.addEventListener("click", () => {
+  content = clone(factoryDefaults);
   localStorage.removeItem(contentKey);
   feedback.textContent = "Сброшено к начальному материалу.";
   renderAdmin();
 });
 
 renderAdmin();
-loadCloudContentForAdmin();
-getAuth()?.onAuthStateChanged(updateAuthControls);
-updateAuthControls(getAuth()?.currentUser);
+loadRepoContentForAdmin();
