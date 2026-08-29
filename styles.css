@@ -90,6 +90,9 @@ button:disabled {
 }
 
 .brand-header {
+  position: sticky;
+  top: 10px;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -99,6 +102,7 @@ button:disabled {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: rgba(255, 250, 240, 0.84);
+  backdrop-filter: blur(16px);
   box-shadow: 0 10px 26px rgba(31, 37, 29, 0.08);
 }
 
@@ -1107,6 +1111,20 @@ h1 {
   overflow-x: auto;
 }
 
+.admin-auth-actions {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.admin-auth-actions span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: right;
+}
+
 .admin-feedback {
   min-height: 24px;
   margin-bottom: 12px;
@@ -1276,6 +1294,20 @@ h1 {
   .brand-header {
     min-height: 64px;
     padding: 10px 12px;
+  }
+
+  .admin-shell .brand-header {
+    align-items: start;
+  }
+
+  .admin-auth-actions {
+    gap: 5px;
+  }
+
+  .admin-auth-actions span {
+    max-width: 120px;
+    font-size: 10px;
+    line-height: 1.2;
   }
 
   .brand-title strong {

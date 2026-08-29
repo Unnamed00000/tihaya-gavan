@@ -330,7 +330,7 @@ const contentStorageKey = "tihayaContent";
 const settingsStorageKey = "tihayaSettings";
 const cloudContentCollection = "tihaya";
 const cloudContentDocument = "content";
-const appVersion = "1.1.0";
+const appVersion = "1.1.1";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63" },
@@ -518,6 +518,31 @@ function formatLessonDate(date) {
   });
 }
 
+function formatRouteDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseRouteDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function setRoute(route, replace = false) {
+  const nextHash = `#${route}`;
+  const nextUrl = `${location.pathname}${location.search}${nextHash}`;
+  if (location.hash === nextHash) return;
+  if (replace) {
+    history.replaceState(null, "", nextUrl);
+  } else {
+    history.pushState(null, "", nextUrl);
+  }
+}
+
 function getSchedulePhrases() {
   const date = state.selectedDate || todayDate;
   const dayIndex = getCalendarDayIndex(date);
@@ -606,7 +631,8 @@ function clearSelectedDay() {
   document.querySelectorAll(".calendar-day").forEach((item) => item.classList.remove("is-selected"));
 }
 
-function showCalendar() {
+function showCalendar(options = {}) {
+  if (options.updateRoute !== false) setRoute("calendar", options.replaceRoute);
   clearSelectedDay();
   state.scope = "schedule";
   state.search = "";
@@ -622,21 +648,26 @@ function showCalendar() {
   renderMonthCalendar();
 }
 
-function showRules() {
+function showRules(options = {}) {
+  if (options.updateRoute !== false) setRoute("rules", options.replaceRoute);
+  clearSelectedDay();
   calendarScreen.classList.add("is-hidden");
   lessonContent.classList.add("is-hidden");
   rulesScreen.classList.remove("is-hidden");
 }
 
-function openDate(date) {
+function openDate(date, options = {}) {
   if (!isCalendarDateAvailable(date)) return;
   const dayIndex = getCalendarDayIndex(date);
 
   state.selectedDate = startOfDay(date);
   state.selectedDay = dayIndex > 4 ? null : dayIndex;
+  state.calendarYear = date.getFullYear();
+  state.calendarMonth = date.getMonth();
   state.scope = "schedule";
   state.category = "all";
   state.search = "";
+  if (options.updateRoute !== false) setRoute(`date=${formatRouteDate(date)}`, options.replaceRoute);
   searchInput.value = "";
   calendarScreen.classList.add("is-hidden");
   rulesScreen.classList.add("is-hidden");
@@ -652,6 +683,24 @@ function openDate(date) {
   renderMonthCalendar();
   renderPhrases();
   newQuestion();
+}
+
+function syncViewToRoute() {
+  const route = decodeURIComponent(location.hash.replace(/^#/, ""));
+  if (route === "rules") {
+    showRules({ updateRoute: false });
+    return;
+  }
+
+  if (route.startsWith("date=")) {
+    const routeDate = parseRouteDate(route.slice(5));
+    if (routeDate && isCalendarDateAvailable(routeDate)) {
+      openDate(routeDate, { updateRoute: false });
+      return;
+    }
+  }
+
+  showCalendar({ updateRoute: false, replaceRoute: true });
 }
 
 function getWeekNumber(date) {
@@ -969,11 +1018,12 @@ if (phraseGrid) {
     renderMonthCalendar();
   });
 
-  updateScheduleCopy();
-  updateStats();
   renderSoundUnits();
   renderMonthCalendar();
+  syncViewToRoute();
   loadCloudContent();
+  window.addEventListener("popstate", syncViewToRoute);
+  window.addEventListener("hashchange", syncViewToRoute);
 }
 
 let deferredInstallPrompt = null;

@@ -15,8 +15,11 @@
           <span>Админ-панель</span>
           <strong>Тихая гавань</strong>
         </div>
-        <button id="admin-login" class="install-button" type="button">Войти</button>
-        <button id="admin-logout" class="secondary-button is-hidden" type="button">Выйти</button>
+        <div class="admin-auth-actions">
+          <span>Вход нужен только для сохранения</span>
+          <button id="admin-login" class="install-button" type="button">Войти как админ</button>
+          <button id="admin-logout" class="secondary-button is-hidden" type="button">Выйти</button>
+        </div>
       </header>
 
       <section class="admin-panel" aria-labelledby="admin-title">
@@ -25,7 +28,8 @@
           <h1 id="admin-title">Клиентская часть отдельно, админка отдельно</h1>
           <p>
             Здесь можно менять слова, произношение, правила и ссылки на аудио.
-            После сохранения клиентская часть загрузит эти данные из Firebase.
+            Чтобы изменения увидели все пользователи, войди через админский
+            Google-аккаунт и сохрани данные в Firebase.
           </p>
         </div>
 
