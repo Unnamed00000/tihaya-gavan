@@ -330,7 +330,7 @@ const contentStorageKey = "tihayaContent";
 const settingsStorageKey = "tihayaSettings";
 const cloudContentCollection = "tihaya";
 const cloudContentDocument = "content";
-const appVersion = "1.1.1";
+const appVersion = "1.1.2";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63" },
