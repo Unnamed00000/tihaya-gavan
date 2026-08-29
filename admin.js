@@ -1,7 +1,7 @@
 const contentKey = window.tihayaContentStorageKey || "tihayaContent";
 const contentDraftKey = window.tihayaContentDraftStorageKey || "tihayaContentDraft";
 const factoryDefaults = window.tihayaFactoryDefaults || { soundUnits: [], phrases: [] };
-const remoteContentUrl = window.tihayaRemoteContentUrl || "./content.json";
+const remoteContentUrl = window.tihayaRemoteContentUrl || "./data/content.json";
 const dayOptions = [
   { value: 0, short: "Пн", label: "Понедельник", mode: "lesson" },
   { value: 1, short: "Вт", label: "Вторник", mode: "lesson" },
@@ -86,7 +86,7 @@ function persistLocal(message = "Сохранено на этом устройс
 async function loadRepoContentForAdmin() {
   if (localStorage.getItem(contentDraftKey) === "1") {
     feedback.textContent =
-      "Показаны правки, сохраненные на этом устройстве. Чтобы их увидели все клиенты, скачай content.json и загрузи его в GitHub.";
+      "Показаны правки, сохраненные на этом устройстве. Чтобы их увидели все клиенты, скачай content.json и загрузи его в папку data на GitHub.";
     return;
   }
 
@@ -100,7 +100,7 @@ async function loadRepoContentForAdmin() {
     feedback.textContent = "Материал загружен из content.json. Можно редактировать.";
     renderAdmin();
   } catch {
-    feedback.textContent = "Показана локальная копия. Для общей публикации скачай content.json и загрузи его в GitHub.";
+    feedback.textContent = "Показана локальная копия. Для общей публикации скачай content.json и загрузи его в папку data на GitHub.";
   }
 }
 
@@ -115,7 +115,7 @@ function downloadContentJson() {
   link.download = "content.json";
   link.click();
   URL.revokeObjectURL(link.href);
-  feedback.textContent = "Файл content.json скачан. Загрузи его в корень GitHub-репозитория.";
+  feedback.textContent = "Файл content.json скачан. Загрузи его в папку data в GitHub-репозитории.";
 }
 
 function importContentJson(file) {
@@ -428,7 +428,7 @@ addSoundButton.addEventListener("click", () => {
 });
 
 saveButton.addEventListener("click", () => {
-  persistLocal("Сохранено на этом устройстве. Для клиентов скачай content.json и загрузи его в GitHub.");
+  persistLocal("Сохранено на этом устройстве. Для клиентов скачай content.json и загрузи его в папку data на GitHub.");
 });
 
 exportButton.addEventListener("click", downloadContentJson);

@@ -341,8 +341,8 @@ const availableDayLimit = isWeekend ? 4 : Math.min(todayIndex, 4);
 const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
-const remoteContentUrl = "./content.json";
-const appVersion = "2.0.1";
+const remoteContentUrl = "./data/content.json";
+const appVersion = "2.0.2";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63" },
@@ -816,7 +816,7 @@ async function loadRemoteContent() {
       newQuestion();
     }
   } catch {
-    // Keep the bundled or locally saved content when GitHub content.json is not available locally.
+    // Keep the bundled or locally saved content when GitHub data/content.json is not available locally.
   }
 }
 
