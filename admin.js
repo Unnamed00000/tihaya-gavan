@@ -11,18 +11,36 @@ const dayOptions = [
   { value: 5, short: "Сб", label: "Суббота", mode: "review" },
   { value: 6, short: "Вс", label: "Воскресенье", mode: "review" },
 ];
+const adminMonthNames = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
+const adminToday = new Date();
 
 let content = mergeContentWithFactoryDefaults(JSON.parse(localStorage.getItem(contentKey) || "null"));
 let activeTab = "phrases";
-let activeDay = 0;
+let activeDay = getAdminCalendarDayIndex(adminToday);
+let adminCalendarYear = adminToday.getFullYear();
+let adminCalendarMonth = adminToday.getMonth();
 
 const phraseSection = document.querySelector("#admin-phrases");
 const soundSection = document.querySelector("#admin-sounds");
 const audioSection = document.querySelector("#admin-audio");
 const audioList = document.querySelector("#admin-audio-list");
-const dayGrid = document.querySelector("#admin-day-grid");
+const adminMonthCalendar = document.querySelector("#admin-month-calendar");
+const adminMonthTitle = document.querySelector("#admin-month-title");
 const daySummary = document.querySelector("#admin-day-summary");
 const feedback = document.querySelector("#admin-feedback");
 const addPhraseButton = document.querySelector("#add-phrase");
@@ -34,6 +52,27 @@ const importInput = document.querySelector("#import-content");
 
 function getSoundKey(unit) {
   return `${unit.title || ""}|${unit.formula || ""}`.toLocaleLowerCase("ru-RU");
+}
+
+function getAdminCalendarDayIndex(date) {
+  const day = date.getDay();
+  return day === 0 ? 6 : day - 1;
+}
+
+function getAdminWeekNumber(date) {
+  const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNumber = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - dayNumber);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  return Math.ceil(((target - yearStart) / 86400000 + 1) / 7);
+}
+
+function isSameAdminDate(first, second) {
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
 }
 
 function mergeContentWithFactoryDefaults(nextContent) {
@@ -173,26 +212,47 @@ function makeSelect(labelText, value, options, onInput) {
 }
 
 function renderDayBoard() {
-  dayGrid.innerHTML = "";
+  adminMonthCalendar.innerHTML = "";
+  adminMonthTitle.textContent = `${adminMonthNames[adminCalendarMonth]} ${adminCalendarYear}`;
 
-  dayOptions.forEach((day) => {
-    const phrasesForDay = content.phrases.filter((phrase) => Number(phrase.day) === day.value);
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "admin-day";
-    button.classList.toggle("is-active", activeDay === day.value);
-    button.classList.toggle("is-review", day.mode === "review");
-    button.innerHTML = `
-      <span>${day.short}</span>
-      <strong>${day.label}</strong>
-      <em>${day.mode === "review" ? "повторение" : `${phrasesForDay.length}/5 слов`}</em>
-    `;
-    button.addEventListener("click", () => {
-      activeDay = day.value;
-      renderAdmin();
+  const firstOfMonth = new Date(adminCalendarYear, adminCalendarMonth, 1);
+  const firstGridDate = new Date(firstOfMonth);
+  firstGridDate.setDate(firstOfMonth.getDate() - getAdminCalendarDayIndex(firstOfMonth));
+
+  for (let week = 0; week < 6; week += 1) {
+    const weekStart = new Date(firstGridDate);
+    weekStart.setDate(firstGridDate.getDate() + week * 7);
+
+    const weekNumber = document.createElement("div");
+    weekNumber.className = "week-number";
+    weekNumber.textContent = String(getAdminWeekNumber(weekStart));
+    adminMonthCalendar.append(weekNumber);
+
+    dayOptions.forEach((_, dayOffset) => {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + dayOffset);
+      const dayIndex = getAdminCalendarDayIndex(date);
+      const isCurrentMonth = date.getMonth() === adminCalendarMonth;
+      const isWeekendDate = dayIndex > 4;
+      const phrasesForDay = isWeekendDate ? content.phrases : content.phrases.filter((phrase) => Number(phrase.day) === dayIndex);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "calendar-day admin-calendar-day";
+      button.classList.toggle("is-outside", !isCurrentMonth);
+      button.classList.toggle("is-today", isSameAdminDate(date, adminToday));
+      button.classList.toggle("is-selected", activeDay === dayIndex && isCurrentMonth);
+      button.classList.toggle("is-review", isWeekendDate && isCurrentMonth);
+      button.disabled = !isCurrentMonth;
+      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : `${phrasesForDay.length}/5`}</span>`;
+      button.setAttribute("aria-label", `${date.getDate()}: ${dayOptions[dayIndex].label}`);
+      button.addEventListener("click", () => {
+        activeDay = dayIndex;
+        renderAdmin();
+      });
+      adminMonthCalendar.append(button);
     });
-    dayGrid.append(button);
-  });
+  }
 }
 
 function getActivePhrasesWithIndex() {
@@ -394,6 +454,24 @@ document.querySelectorAll("[data-admin-tab]").forEach((button) => {
     });
     renderAdmin();
   });
+});
+
+document.querySelector("#admin-prev-month")?.addEventListener("click", () => {
+  adminCalendarMonth -= 1;
+  if (adminCalendarMonth < 0) {
+    adminCalendarMonth = 11;
+    adminCalendarYear -= 1;
+  }
+  renderAdmin();
+});
+
+document.querySelector("#admin-next-month")?.addEventListener("click", () => {
+  adminCalendarMonth += 1;
+  if (adminCalendarMonth > 11) {
+    adminCalendarMonth = 0;
+    adminCalendarYear += 1;
+  }
+  renderAdmin();
 });
 
 addPhraseButton.addEventListener("click", () => {

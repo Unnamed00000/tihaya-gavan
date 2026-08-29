@@ -4,7 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Админ-панель приложения Тихая гавань." />
+    <meta name="theme-color" content="#0f4d35" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Тихая гавань" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Тихая гавань: админка</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -12,30 +20,56 @@
       <header class="brand-header" aria-label="Админ-панель">
         <div class="brand-placeholder" aria-hidden="true">ТГ</div>
         <div class="brand-title">
-          <span>Админ-панель</span>
+          <span>Приложение для изучения чеченского</span>
           <strong>Тихая гавань</strong>
         </div>
         <a class="secondary-button admin-client-link" href="./index.html">К клиенту</a>
+        <button id="open-settings" class="settings-button" type="button" aria-label="Открыть настройки">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3.8 18.7 7.7v7.7L12 19.2l-6.7-3.8V7.7L12 3.8Z" />
+            <path d="M12 7.2 15.9 9.4v4.4L12 16l-3.9-2.2V9.4L12 7.2Z" />
+            <circle cx="12" cy="11.6" r="2.1" />
+          </svg>
+        </button>
       </header>
 
-      <section class="admin-panel" aria-labelledby="admin-title">
+      <section class="calendar-screen admin-panel" aria-labelledby="admin-title">
         <div class="section-heading">
-          <p class="eyebrow">Редактор материала</p>
-          <h1 id="admin-title">Клиентская часть отдельно, админка отдельно</h1>
+          <p class="eyebrow">Календарь админки</p>
+          <h1 id="admin-title">Выбери день для редактирования</h1>
           <p>
-            Здесь можно менять слова, произношение, правила и ссылки на аудио.
-            Вход не нужен: подготовь материал, скачай <code>content.json</code>
-            и загрузи его в папку <code>data</code> на GitHub.
+            Здесь видны все дни. В клиентской части будущие даты закрыты, а здесь
+            можно заранее подготовить слова, правила и аудио.
           </p>
         </div>
 
-        <section class="admin-day-panel" aria-labelledby="admin-days-title">
-          <div>
-            <p class="eyebrow">Неделя</p>
-            <h2 id="admin-days-title">Материал по дням</h2>
+        <div class="calendar-card">
+          <div class="month-toolbar">
+            <button id="admin-prev-month" class="icon-button" type="button" aria-label="Предыдущий месяц">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+            <h2 id="admin-month-title"></h2>
+            <button id="admin-next-month" class="icon-button" type="button" aria-label="Следующий месяц">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
           </div>
-          <div id="admin-day-grid" class="admin-day-grid" aria-label="Дни недели"></div>
-        </section>
+
+          <div class="month-weekdays" aria-hidden="true">
+            <span>Нед</span>
+            <span>Пн</span>
+            <span>Вт</span>
+            <span>Ср</span>
+            <span>Чт</span>
+            <span>Пт</span>
+            <span>Сб</span>
+            <span>Вс</span>
+          </div>
+          <div id="admin-month-calendar" class="month-calendar" aria-label="Календарь месяца"></div>
+        </div>
 
         <div class="admin-tabs" role="tablist" aria-label="Разделы админки">
           <button class="segment is-active" data-admin-tab="phrases" type="button">Слова</button>
@@ -75,6 +109,96 @@
         </div>
       </section>
     </main>
+
+    <div id="settings-modal" class="settings-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="settings-backdrop" data-close-settings></div>
+      <section class="settings-sheet" aria-label="Настройки приложения">
+        <div class="settings-head">
+          <div>
+            <p class="eyebrow">Настройки</p>
+            <h2 id="settings-title">Тихая гавань</h2>
+          </div>
+          <button id="close-settings" class="icon-button" type="button" aria-label="Закрыть настройки">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="settings-info">
+          <div>
+            <span>Версия программы</span>
+            <strong id="app-version">2.0.3</strong>
+          </div>
+          <div class="creator-box">
+            <span>Создатель программы</span>
+            <strong class="creator-note">
+              <span>программа создавалась</span>
+              <span>лично для</span>
+              <span>Анны Погосян</span>
+              <span class="creator-heart" aria-hidden="true">♥</span>
+            </strong>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="setting-label">
+            <strong>Тема</strong>
+            <span id="theme-value">Светлая</span>
+          </div>
+          <label class="setting-switch">
+            <input id="theme-toggle" type="checkbox" />
+            <span></span>
+          </label>
+        </div>
+
+        <label class="setting-range">
+          <span>
+            <strong>Цвет</strong>
+            <em id="color-value">Зелёный</em>
+          </span>
+          <input id="accent-range" type="range" min="0" max="4" step="1" value="0" />
+        </label>
+
+        <div class="setting-group">
+          <div class="setting-label">
+            <strong>Звук</strong>
+            <span id="sound-toggle-value">Включён</span>
+          </div>
+          <label class="setting-switch">
+            <input id="sound-toggle" type="checkbox" checked />
+            <span></span>
+          </label>
+        </div>
+
+        <label class="setting-range">
+          <span>
+            <strong>Громкость</strong>
+            <em id="volume-value">80%</em>
+          </span>
+          <input id="volume-range" type="range" min="0" max="100" step="5" value="80" />
+        </label>
+
+        <div class="setting-group">
+          <div class="setting-label">
+            <strong>Вибрация</strong>
+            <span id="vibration-toggle-value">Включена</span>
+          </div>
+          <label class="setting-switch">
+            <input id="vibration-toggle" type="checkbox" checked />
+            <span></span>
+          </label>
+        </div>
+
+        <label class="setting-range">
+          <span>
+            <strong>Сила вибрации</strong>
+            <em id="vibration-value">40%</em>
+          </span>
+          <input id="vibration-range" type="range" min="0" max="100" step="10" value="40" />
+        </label>
+      </section>
+    </div>
 
     <script defer src="./app.js"></script>
     <script defer src="./admin.js"></script>
