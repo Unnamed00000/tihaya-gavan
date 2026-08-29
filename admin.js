@@ -14,6 +14,28 @@ const feedback = document.querySelector("#admin-feedback");
 const loginButton = document.querySelector("#admin-login");
 const logoutButton = document.querySelector("#admin-logout");
 
+function getSoundKey(unit) {
+  return `${unit.title || ""}|${unit.formula || ""}`.toLocaleLowerCase("ru-RU");
+}
+
+function mergeContentWithFactoryDefaults(nextContent) {
+  const mergedContent = {
+    soundUnits: nextContent?.soundUnits?.length ? nextContent.soundUnits : JSON.parse(JSON.stringify(factoryDefaults.soundUnits)),
+    phrases: nextContent?.phrases?.length ? nextContent.phrases : JSON.parse(JSON.stringify(factoryDefaults.phrases)),
+  };
+  const existingKeys = new Set(mergedContent.soundUnits.map(getSoundKey));
+
+  factoryDefaults.soundUnits.forEach((unit) => {
+    if (!existingKeys.has(getSoundKey(unit))) {
+      mergedContent.soundUnits.push(JSON.parse(JSON.stringify(unit)));
+    }
+  });
+
+  return mergedContent;
+}
+
+content = mergeContentWithFactoryDefaults(content);
+
 function getAuth() {
   return window.chechenLearningFirebase?.auth;
 }
@@ -94,10 +116,7 @@ async function loadCloudContentForAdmin() {
     if (snapshot.exists) {
       const cloudContent = snapshot.data();
       if (cloudContent?.soundUnits?.length && cloudContent?.phrases?.length) {
-        content = {
-          soundUnits: cloudContent.soundUnits,
-          phrases: cloudContent.phrases,
-        };
+        content = mergeContentWithFactoryDefaults(cloudContent);
         localStorage.setItem(contentKey, JSON.stringify(content));
         feedback.textContent = "Материал загружен из Firebase.";
         renderAdmin();

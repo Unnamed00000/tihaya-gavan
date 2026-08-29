@@ -18,6 +18,18 @@ const monthNames = [
 
 const soundUnits = [
   {
+    formula: "I = э",
+    title: "I",
+    hint: "Это отдельная палочка, не английская буква. Для первого обучения держи звук как короткое «э».",
+    example: "Пример: Iуьйре, хIаъ, гIуллакхаш",
+  },
+  {
+    formula: "ъ = э",
+    title: "Ъ",
+    hint: "Это не мягкий знак. Он похож на знак без своей обычной русской роли и читается ближе к короткому «э».",
+    example: "Пример: ъ = э; точные слова можно добавить в админке",
+  },
+  {
     formula: "х + ь = хь",
     title: "Хь",
     hint: "Не читай как русскую Х. Это более мягкий горловой звук: язык и горло работают иначе.",
@@ -330,7 +342,7 @@ const contentStorageKey = "tihayaContent";
 const settingsStorageKey = "tihayaSettings";
 const cloudContentCollection = "tihaya";
 const cloudContentDocument = "content";
-const appVersion = "1.1.2";
+const appVersion = "1.1.3";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63" },
@@ -346,6 +358,20 @@ const defaultSettings = {
   vibration: true,
   vibrationStrength: 40,
 };
+const defaultSoundUnits = JSON.parse(JSON.stringify(soundUnits));
+
+function getSoundKey(unit) {
+  return `${unit.title || ""}|${unit.formula || ""}`.toLocaleLowerCase("ru-RU");
+}
+
+function addMissingDefaultSoundUnits() {
+  const existingKeys = new Set(soundUnits.map(getSoundKey));
+  defaultSoundUnits.forEach((unit) => {
+    if (!existingKeys.has(getSoundKey(unit))) {
+      soundUnits.push(JSON.parse(JSON.stringify(unit)));
+    }
+  });
+}
 
 window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases }));
 window.tihayaContentStorageKey = contentStorageKey;
@@ -358,6 +384,7 @@ try {
   const savedContent = JSON.parse(localStorage.getItem(contentStorageKey) || "null");
   if (savedContent?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...savedContent.soundUnits);
   if (savedContent?.phrases?.length) phrases.splice(0, phrases.length, ...savedContent.phrases);
+  addMissingDefaultSoundUnits();
 } catch {
   localStorage.removeItem(contentStorageKey);
 }
@@ -377,6 +404,7 @@ window.tihayaContent = { soundUnits, phrases };
 function applySharedContent(content) {
   if (content?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...content.soundUnits);
   if (content?.phrases?.length) phrases.splice(0, phrases.length, ...content.phrases);
+  addMissingDefaultSoundUnits();
   window.tihayaContent = { soundUnits, phrases };
 }
 
