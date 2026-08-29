@@ -342,7 +342,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.0.6";
+const appVersion = "2.0.7";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63" },
@@ -1077,6 +1077,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.0.6").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.0.7").catch(() => {});
   });
 }

@@ -1,3 +1,4 @@
+(() => {
 const contentKey = window.tihayaContentStorageKey || "tihayaContent";
 const contentDraftKey = window.tihayaContentDraftStorageKey || "tihayaContentDraft";
 const factoryDefaults = window.tihayaFactoryDefaults || { soundUnits: [], phrases: [] };
@@ -588,3 +589,4 @@ resetButton.addEventListener("click", () => {
 
 renderAdmin();
 loadRepoContentForAdmin();
+})();
