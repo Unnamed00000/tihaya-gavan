@@ -1,0 +1,19 @@
+{
+  "name": "Тихая гавань",
+  "short_name": "Тихая гавань",
+  "description": "Мобильное приложение для изучения чеченского языка с русского.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f2eb",
+  "theme_color": "#0f4d35",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
