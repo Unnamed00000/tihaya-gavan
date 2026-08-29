@@ -27,6 +27,12 @@
           <strong>Тихая гавань</strong>
         </div>
         <button id="install-app" class="install-button is-hidden" type="button">Установить</button>
+        <button id="open-settings" class="settings-button" type="button" aria-label="Открыть настройки">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2.6 19.6 7v10L12 21.4 4.4 17V7L12 2.6Z" />
+            <path d="M12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 0 0 0-7.2Z" />
+          </svg>
+        </button>
       </header>
 
       <section id="calendar-screen" class="calendar-screen" aria-labelledby="calendar-title">
@@ -194,6 +200,91 @@
         </section>
       </section>
     </main>
+
+    <div id="settings-modal" class="settings-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="settings-backdrop" data-close-settings></div>
+      <section class="settings-sheet" aria-label="Настройки приложения">
+        <div class="settings-head">
+          <div>
+            <p class="eyebrow">Настройки</p>
+            <h2 id="settings-title">Тихая гавань</h2>
+          </div>
+          <button id="close-settings" class="icon-button" type="button" aria-label="Закрыть настройки">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="settings-info">
+          <div>
+            <span>Версия программы</span>
+            <strong id="app-version">1.1.0</strong>
+          </div>
+          <div>
+            <span>Создатель программы</span>
+            <strong>Тихая гавань</strong>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="setting-label">
+            <strong>Тема</strong>
+            <span id="theme-value">Светлая</span>
+          </div>
+          <label class="setting-switch">
+            <input id="theme-toggle" type="checkbox" />
+            <span></span>
+          </label>
+        </div>
+
+        <label class="setting-range">
+          <span>
+            <strong>Цвет</strong>
+            <em id="color-value">Зелёный</em>
+          </span>
+          <input id="accent-range" type="range" min="0" max="4" step="1" value="0" />
+        </label>
+
+        <div class="setting-group">
+          <div class="setting-label">
+            <strong>Звук</strong>
+            <span id="sound-toggle-value">Включён</span>
+          </div>
+          <label class="setting-switch">
+            <input id="sound-toggle" type="checkbox" checked />
+            <span></span>
+          </label>
+        </div>
+
+        <label class="setting-range">
+          <span>
+            <strong>Громкость</strong>
+            <em id="volume-value">80%</em>
+          </span>
+          <input id="volume-range" type="range" min="0" max="100" step="5" value="80" />
+        </label>
+
+        <div class="setting-group">
+          <div class="setting-label">
+            <strong>Вибрация</strong>
+            <span id="vibration-toggle-value">Включена</span>
+          </div>
+          <label class="setting-switch">
+            <input id="vibration-toggle" type="checkbox" checked />
+            <span></span>
+          </label>
+        </div>
+
+        <label class="setting-range">
+          <span>
+            <strong>Сила вибрации</strong>
+            <em id="vibration-value">40%</em>
+          </span>
+          <input id="vibration-range" type="range" min="0" max="100" step="10" value="40" />
+        </label>
+      </section>
+    </div>
 
     <template id="phrase-template">
       <article class="phrase-card">

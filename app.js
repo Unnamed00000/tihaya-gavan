@@ -327,8 +327,25 @@ const todayIndex = browserDay === 0 ? 6 : browserDay - 1;
 const isWeekend = todayIndex > 4;
 const availableDayLimit = isWeekend ? 4 : Math.min(todayIndex, 4);
 const contentStorageKey = "tihayaContent";
+const settingsStorageKey = "tihayaSettings";
 const cloudContentCollection = "tihaya";
 const cloudContentDocument = "content";
+const appVersion = "1.1.0";
+const accentOptions = [
+  { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35" },
+  { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63" },
+  { name: "Синий", deep: "#234f8f", green: "#3774c7", theme: "#234f8f" },
+  { name: "Бордовый", deep: "#7f2b38", green: "#b54655", theme: "#7f2b38" },
+  { name: "Золотой", deep: "#7a4f13", green: "#c78b2f", theme: "#7a4f13" },
+];
+const defaultSettings = {
+  theme: "light",
+  accent: 0,
+  sound: true,
+  volume: 80,
+  vibration: true,
+  vibrationStrength: 40,
+};
 
 window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases }));
 window.tihayaContentStorageKey = contentStorageKey;
@@ -343,6 +360,16 @@ try {
   if (savedContent?.phrases?.length) phrases.splice(0, phrases.length, ...savedContent.phrases);
 } catch {
   localStorage.removeItem(contentStorageKey);
+}
+
+function loadSettings() {
+  try {
+    const savedSettings = JSON.parse(localStorage.getItem(settingsStorageKey) || "null");
+    return { ...defaultSettings, ...(savedSettings || {}) };
+  } catch {
+    localStorage.removeItem(settingsStorageKey);
+    return { ...defaultSettings };
+  }
 }
 
 window.tihayaContent = { soundUnits, phrases };
@@ -363,6 +390,7 @@ const state = {
   calendarMonth: todayDate.getMonth(),
   selectedDate: null,
   selectedDay: null,
+  settings: loadSettings(),
 };
 
 const calendarScreen = document.querySelector("#calendar-screen");
@@ -387,8 +415,83 @@ const lessonTitle = document.querySelector("#lesson-title");
 const lessonNote = document.querySelector("#lesson-note");
 const lessonKicker = document.querySelector("#lesson-kicker");
 const installButton = document.querySelector("#install-app");
+const openSettingsButton = document.querySelector("#open-settings");
+const settingsModal = document.querySelector("#settings-modal");
+const closeSettingsButton = document.querySelector("#close-settings");
+const appVersionLabel = document.querySelector("#app-version");
+const themeToggle = document.querySelector("#theme-toggle");
+const themeValue = document.querySelector("#theme-value");
+const accentRange = document.querySelector("#accent-range");
+const colorValue = document.querySelector("#color-value");
+const soundToggle = document.querySelector("#sound-toggle");
+const soundToggleValue = document.querySelector("#sound-toggle-value");
+const volumeRange = document.querySelector("#volume-range");
+const volumeValue = document.querySelector("#volume-value");
+const vibrationToggle = document.querySelector("#vibration-toggle");
+const vibrationToggleValue = document.querySelector("#vibration-toggle-value");
+const vibrationRange = document.querySelector("#vibration-range");
+const vibrationValue = document.querySelector("#vibration-value");
 
 const normalize = (value) => value.toLocaleLowerCase("ru-RU").replaceAll("ӏ", "i").replaceAll("і", "i");
+
+function saveSettings() {
+  localStorage.setItem(settingsStorageKey, JSON.stringify(state.settings));
+}
+
+function applySettings() {
+  const accent = accentOptions[state.settings.accent] || accentOptions[0];
+  document.body.dataset.theme = state.settings.theme;
+  document.documentElement.style.setProperty("--green-deep", accent.deep);
+  document.documentElement.style.setProperty("--green", accent.green);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", accent.theme);
+
+  if (appVersionLabel) appVersionLabel.textContent = appVersion;
+  if (themeToggle) themeToggle.checked = state.settings.theme === "dark";
+  if (themeValue) themeValue.textContent = state.settings.theme === "dark" ? "Тёмная" : "Светлая";
+  if (accentRange) accentRange.value = String(state.settings.accent);
+  if (colorValue) colorValue.textContent = accent.name;
+  if (soundToggle) soundToggle.checked = state.settings.sound;
+  if (soundToggleValue) soundToggleValue.textContent = state.settings.sound ? "Включён" : "Выключен";
+  if (volumeRange) volumeRange.value = String(state.settings.volume);
+  if (volumeValue) volumeValue.textContent = `${state.settings.volume}%`;
+  if (vibrationToggle) vibrationToggle.checked = state.settings.vibration;
+  if (vibrationToggleValue) vibrationToggleValue.textContent = state.settings.vibration ? "Включена" : "Выключена";
+  if (vibrationRange) vibrationRange.value = String(state.settings.vibrationStrength);
+  if (vibrationValue) vibrationValue.textContent = `${state.settings.vibrationStrength}%`;
+}
+
+function updateSettings(nextSettings) {
+  state.settings = { ...state.settings, ...nextSettings };
+  saveSettings();
+  applySettings();
+}
+
+function triggerVibration(multiplier = 1) {
+  if (!state.settings.vibration || !("vibrate" in navigator)) return;
+  const duration = Math.max(8, Math.round(state.settings.vibrationStrength * multiplier));
+  navigator.vibrate(duration);
+}
+
+function playAudioUrl(url) {
+  if (!url || !state.settings.sound || state.settings.volume <= 0) return;
+  const audio = new Audio(url);
+  audio.volume = Math.min(1, Math.max(0, state.settings.volume / 100));
+  audio.play().catch(() => {});
+}
+
+function openSettings() {
+  settingsModal?.classList.remove("is-hidden");
+  document.body.classList.add("settings-open");
+  openSettingsButton?.setAttribute("aria-expanded", "true");
+  closeSettingsButton?.focus();
+}
+
+function closeSettings() {
+  settingsModal?.classList.add("is-hidden");
+  document.body.classList.remove("settings-open");
+  openSettingsButton?.setAttribute("aria-expanded", "false");
+  openSettingsButton?.focus();
+}
 
 function startOfDay(date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -646,15 +749,11 @@ async function loadCloudContent() {
 }
 
 function speak(phrase) {
-  if (!phrase.audioUrl) return;
-  const audio = new Audio(phrase.audioUrl);
-  audio.play().catch(() => {});
+  playAudioUrl(phrase.audioUrl);
 }
 
 function speakSound(unit) {
-  if (!unit.audioUrl) return;
-  const audio = new Audio(unit.audioUrl);
-  audio.play().catch(() => {});
+  playAudioUrl(unit.audioUrl);
 }
 
 function renderSoundUnits() {
@@ -669,7 +768,10 @@ function renderSoundUnits() {
 
     const audioButton = card.querySelector(".sound-audio");
     if (unit.audioUrl) {
-      audioButton.addEventListener("click", () => speakSound(unit));
+      audioButton.addEventListener("click", () => {
+        triggerVibration(0.45);
+        speakSound(unit);
+      });
     } else {
       audioButton.classList.add("is-hidden");
       audioButton.setAttribute("aria-hidden", "true");
@@ -702,7 +804,10 @@ function renderPhrases() {
 
     const audioButton = card.querySelector(".audio-button");
     if (phrase.audioUrl) {
-      audioButton.addEventListener("click", () => speak(phrase));
+      audioButton.addEventListener("click", () => {
+        triggerVibration(0.45);
+        speak(phrase);
+      });
     } else {
       audioButton.classList.add("is-hidden");
       audioButton.setAttribute("aria-hidden", "true");
@@ -714,6 +819,7 @@ function renderPhrases() {
     learnedButton.textContent = isDone ? "Выучено" : "Отметить выученным";
     learnedButton.classList.toggle("is-done", isDone);
     learnedButton.addEventListener("click", () => {
+      triggerVibration(0.65);
       if (state.learned.has(phrase.id)) {
         state.learned.delete(phrase.id);
       } else {
@@ -748,6 +854,7 @@ function newQuestion() {
     button.type = "button";
     button.textContent = phrase.chechen;
     button.addEventListener("click", () => {
+      triggerVibration(phrase.id === correct.id ? 0.8 : 0.35);
       const isCorrect = phrase.id === correct.id;
       button.classList.add(isCorrect ? "correct" : "wrong");
       quizFeedback.textContent = isCorrect ? "Верно. Баркалла!" : `Почти. Правильно: ${correct.chechen}`;
@@ -766,6 +873,50 @@ function newQuestion() {
     answerOptions.append(button);
   });
 }
+
+applySettings();
+
+openSettingsButton?.addEventListener("click", () => {
+  triggerVibration(0.35);
+  openSettings();
+});
+
+closeSettingsButton?.addEventListener("click", closeSettings);
+
+settingsModal?.querySelector("[data-close-settings]")?.addEventListener("click", closeSettings);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !settingsModal?.classList.contains("is-hidden")) {
+    closeSettings();
+  }
+});
+
+themeToggle?.addEventListener("change", (event) => {
+  updateSettings({ theme: event.target.checked ? "dark" : "light" });
+  triggerVibration(0.35);
+});
+
+accentRange?.addEventListener("input", (event) => {
+  updateSettings({ accent: Number(event.target.value) });
+});
+
+soundToggle?.addEventListener("change", (event) => {
+  updateSettings({ sound: event.target.checked });
+  triggerVibration(0.35);
+});
+
+volumeRange?.addEventListener("input", (event) => {
+  updateSettings({ volume: Number(event.target.value) });
+});
+
+vibrationToggle?.addEventListener("change", (event) => {
+  updateSettings({ vibration: event.target.checked });
+  triggerVibration(0.45);
+});
+
+vibrationRange?.addEventListener("input", (event) => {
+  updateSettings({ vibrationStrength: Number(event.target.value) });
+});
 
 if (phraseGrid) {
   document.querySelectorAll("[data-scope]").forEach((button) => {

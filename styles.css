@@ -14,6 +14,17 @@
   --radius: 8px;
 }
 
+body[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111713;
+  --ink: #f6f1e7;
+  --muted: #b9c1b5;
+  --line: #344237;
+  --paper: #1b241e;
+  --paper-strong: #222d26;
+  --shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -33,6 +44,13 @@ body {
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
+}
+
+body[data-theme="dark"] {
+  background:
+    linear-gradient(135deg, rgba(43, 139, 94, 0.22), transparent 34%),
+    linear-gradient(315deg, rgba(199, 139, 47, 0.12), transparent 32%),
+    var(--bg);
 }
 
 button,
@@ -84,6 +102,13 @@ button:disabled {
   box-shadow: 0 10px 26px rgba(31, 37, 29, 0.08);
 }
 
+body[data-theme="dark"] .brand-header,
+body[data-theme="dark"] .calendar-screen,
+body[data-theme="dark"] .rules-screen,
+body[data-theme="dark"] .lesson-content {
+  background: rgba(27, 36, 30, 0.92);
+}
+
 .brand-placeholder {
   display: grid;
   place-items: center;
@@ -98,7 +123,9 @@ button:disabled {
 
 .brand-title {
   display: grid;
+  flex: 1;
   gap: 2px;
+  min-width: 0;
 }
 
 .brand-title span {
@@ -115,13 +142,40 @@ button:disabled {
 
 .install-button {
   min-height: 42px;
-  margin-left: auto;
   padding: 0 14px;
   border: 1px solid var(--green-deep);
   border-radius: var(--radius);
   background: var(--green-deep);
   color: #ffffff;
   font-weight: 900;
+}
+
+.settings-button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  aspect-ratio: 1;
+  border: 0;
+  background: var(--green-deep);
+  color: #ffffff;
+  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0 50%);
+  transition:
+    transform 160ms ease,
+    background 160ms ease;
+}
+
+.settings-button:active {
+  transform: scale(0.96);
+}
+
+.settings-button svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .calendar-screen {
@@ -147,6 +201,38 @@ button:disabled {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #ffffff;
+}
+
+body[data-theme="dark"] .calendar-card,
+body[data-theme="dark"] .mentor-card,
+body[data-theme="dark"] .study-panel,
+body[data-theme="dark"] .quiz-panel,
+body[data-theme="dark"] .letters-panel,
+body[data-theme="dark"] .phrase-card,
+body[data-theme="dark"] .sound-card,
+body[data-theme="dark"] .question-card,
+body[data-theme="dark"] .settings-sheet {
+  background: var(--paper-strong);
+}
+
+body[data-theme="dark"] .calendar-day,
+body[data-theme="dark"] .week-number,
+body[data-theme="dark"] .icon-button,
+body[data-theme="dark"] .audio-button,
+body[data-theme="dark"] .back-button,
+body[data-theme="dark"] .search-field,
+body[data-theme="dark"] .mentor-name-card,
+body[data-theme="dark"] .practice-box,
+body[data-theme="dark"] .setting-switch span {
+  background: var(--paper);
+}
+
+body[data-theme="dark"] .day-pill {
+  color: #f2c36a;
+}
+
+body.settings-open {
+  overflow: hidden;
 }
 
 .month-toolbar {
@@ -754,6 +840,159 @@ h1 {
   stroke-linejoin: round;
 }
 
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: end center;
+  padding: 18px;
+}
+
+.settings-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 17, 14, 0.58);
+  backdrop-filter: blur(7px);
+}
+
+.settings-sheet {
+  position: relative;
+  width: min(460px, 100%);
+  max-height: min(720px, calc(100vh - 36px));
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-strong);
+  box-shadow: var(--shadow);
+}
+
+.settings-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.settings-head h2 {
+  margin: 2px 0 0;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.settings-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.settings-info div {
+  min-height: 78px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.settings-info span,
+.setting-label span,
+.setting-range em {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.settings-info strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.setting-group,
+.setting-range {
+  display: grid;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.setting-group {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.setting-label strong,
+.setting-range strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.setting-switch {
+  position: relative;
+  display: inline-flex;
+  width: 62px;
+  height: 36px;
+}
+
+.setting-switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+.setting-switch span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #e5dfd1;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+
+.setting-switch span::after {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 26px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 4px 10px rgba(31, 37, 29, 0.18);
+  content: "";
+  transition: transform 160ms ease;
+}
+
+.setting-switch input:checked + span {
+  border-color: var(--green-deep);
+  background: var(--green-deep);
+}
+
+.setting-switch input:checked + span::after {
+  transform: translateX(26px);
+}
+
+.setting-range span {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.setting-range input {
+  width: 100%;
+  height: 34px;
+  accent-color: var(--green-deep);
+}
+
 .russian {
   margin: 18px 0 8px;
   color: var(--muted);
@@ -1050,6 +1289,33 @@ h1 {
   .install-button {
     min-height: 38px;
     padding: 0 10px;
+  }
+
+  .settings-button {
+    width: 42px;
+    flex: 0 0 auto;
+  }
+
+  .settings-button svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .settings-modal {
+    padding: 10px;
+  }
+
+  .settings-sheet {
+    max-height: calc(100vh - 20px);
+    padding: 16px;
+  }
+
+  .settings-head h2 {
+    font-size: 26px;
+  }
+
+  .settings-info {
+    grid-template-columns: 1fr;
   }
 
   .calendar-screen {
