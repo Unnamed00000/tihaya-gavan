@@ -79,6 +79,18 @@
 
         <div id="admin-feedback" class="admin-feedback" aria-live="polite"></div>
 
+        <div class="admin-actions admin-actions--top">
+          <button id="add-phrase" class="secondary-button" type="button">Добавить слово</button>
+          <button id="add-sound" class="secondary-button" type="button">Добавить правило</button>
+          <label class="secondary-button import-button">
+            Загрузить content.json
+            <input id="import-content" type="file" accept="application/json,.json" />
+          </label>
+          <button id="save-content" class="secondary-button" type="button">Сохранить на этом телефоне</button>
+          <button id="export-content" class="rules-button" type="button">Скачать content.json</button>
+          <button id="reset-content" class="danger-button" type="button">Сбросить</button>
+        </div>
+
         <div id="admin-day-summary" class="admin-day-summary"></div>
         <section id="admin-phrases" class="admin-section"></section>
         <section id="admin-sounds" class="admin-section is-hidden"></section>
@@ -95,18 +107,6 @@
           </div>
           <div id="admin-audio-list"></div>
         </section>
-
-        <div class="admin-actions">
-          <button id="add-phrase" class="secondary-button" type="button">Добавить слово</button>
-          <button id="add-sound" class="secondary-button" type="button">Добавить правило</button>
-          <label class="secondary-button import-button">
-            Загрузить content.json
-            <input id="import-content" type="file" accept="application/json,.json" />
-          </label>
-          <button id="save-content" class="secondary-button" type="button">Сохранить на этом телефоне</button>
-          <button id="export-content" class="rules-button" type="button">Скачать content.json</button>
-          <button id="reset-content" class="danger-button" type="button">Сбросить</button>
-        </div>
       </section>
     </main>
 
@@ -128,7 +128,7 @@
         <div class="settings-info">
           <div>
             <span>Версия программы</span>
-            <strong id="app-version">2.0.3</strong>
+            <strong id="app-version">2.0.4</strong>
           </div>
           <div class="creator-box">
             <span>Создатель программы</span>

@@ -31,7 +31,7 @@ const adminToday = new Date();
 
 let content = mergeContentWithFactoryDefaults(JSON.parse(localStorage.getItem(contentKey) || "null"));
 let activeTab = "phrases";
-let activeDay = getAdminCalendarDayIndex(adminToday);
+let activeDay = 0;
 let adminCalendarYear = adminToday.getFullYear();
 let adminCalendarMonth = adminToday.getMonth();
 
@@ -122,6 +122,11 @@ function persistLocal(message = "Сохранено на этом устройс
   renderAdmin();
 }
 
+function persistDraft() {
+  localStorage.setItem(contentKey, JSON.stringify(getCleanContent()));
+  localStorage.setItem(contentDraftKey, "1");
+}
+
 async function loadRepoContentForAdmin() {
   if (localStorage.getItem(contentDraftKey) === "1") {
     feedback.textContent =
@@ -184,7 +189,11 @@ function makeField(labelText, value, onInput, type = "text") {
   const input = document.createElement(type === "textarea" ? "textarea" : "input");
   if (type !== "textarea") input.type = type;
   input.value = value || "";
-  input.addEventListener("input", () => onInput(input.value));
+  input.addEventListener("input", () => {
+    onInput(input.value);
+    persistDraft();
+    feedback.textContent = "Черновик сохранен на этом устройстве.";
+  });
 
   label.append(span, input);
   return label;
@@ -205,7 +214,11 @@ function makeSelect(labelText, value, options, onInput) {
     item.selected = String(option.value) === String(value);
     select.append(item);
   });
-  select.addEventListener("change", () => onInput(select.value));
+  select.addEventListener("change", () => {
+    onInput(select.value);
+    persistDraft();
+    feedback.textContent = "Черновик сохранен на этом устройстве.";
+  });
 
   label.append(span, select);
   return label;
@@ -246,13 +259,18 @@ function renderDayBoard() {
       button.disabled = !isCurrentMonth;
       button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : `${phrasesForDay.length}/5`}</span>`;
       button.setAttribute("aria-label", `${date.getDate()}: ${dayOptions[dayIndex].label}`);
-      button.addEventListener("click", () => {
-        activeDay = dayIndex;
-        renderAdmin();
-      });
+      button.addEventListener("click", () => selectAdminDay(dayIndex));
       adminMonthCalendar.append(button);
     });
   }
+}
+
+function selectAdminDay(dayIndex) {
+  activeDay = dayIndex;
+  renderAdmin();
+  window.requestAnimationFrame(() => {
+    daySummary.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 }
 
 function getActivePhrasesWithIndex() {
@@ -269,10 +287,10 @@ function renderDaySummary() {
   const totalWeekPhrases = weekdayCounts.reduce((sum, count) => sum + count, 0);
 
   if (activeDay > 4) {
-    daySummary.innerHTML = `<strong>${day.label}: повторение</strong><span>Клиент увидит все слова недели: ${totalWeekPhrases}. Новые слова в выходные не добавляются.</span>`;
+    daySummary.innerHTML = `<strong>${day.label}: повторение</strong><span>Клиент увидит все слова недели: ${totalWeekPhrases}. Новые слова в выходные не добавляются, но ниже можно редактировать слова всей недели.</span>`;
   } else {
     const currentCount = weekdayCounts[activeDay];
-    daySummary.innerHTML = `<strong>${day.label}</strong><span>Для этого дня желательно 5 слов. Сейчас: ${currentCount}/5.</span>`;
+    daySummary.innerHTML = `<strong>${day.label}</strong><span>Для этого дня желательно 5 слов. Сейчас: ${currentCount}/5. Поля ниже можно менять сразу.</span>`;
   }
 
   addPhraseButton.disabled = activeDay > 4;
@@ -343,6 +361,8 @@ function renderPhrasesAdmin() {
     remove.textContent = "Удалить";
     remove.addEventListener("click", () => {
       content.phrases.splice(index, 1);
+      persistDraft();
+      feedback.textContent = "Слово удалено. Черновик сохранен на этом устройстве.";
       renderAdmin();
     });
 
@@ -388,6 +408,8 @@ function renderSoundsAdmin() {
     remove.textContent = "Удалить";
     remove.addEventListener("click", () => {
       content.soundUnits.splice(index, 1);
+      persistDraft();
+      feedback.textContent = "Правило удалено. Черновик сохранен на этом устройстве.";
       renderAdmin();
     });
 
@@ -417,6 +439,8 @@ function renderAudioAdmin() {
     input.value = item.audioUrl || "";
     input.addEventListener("input", () => {
       item.audioUrl = input.value;
+      persistDraft();
+      feedback.textContent = "Аудиоссылка сохранена в черновик.";
     });
 
     const test = document.createElement("button");
@@ -487,7 +511,12 @@ addPhraseButton.addEventListener("click", () => {
     query: "",
     audioUrl: "",
   });
+  persistDraft();
+  feedback.textContent = "Новое слово добавлено. Заполни поля ниже.";
   renderAdmin();
+  window.requestAnimationFrame(() => {
+    phraseSection.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 });
 
 addSoundButton.addEventListener("click", () => {
@@ -498,11 +527,16 @@ addSoundButton.addEventListener("click", () => {
     example: "",
     audioUrl: "",
   });
+  persistDraft();
   activeTab = "sounds";
   document.querySelectorAll("[data-admin-tab]").forEach((tab) => {
     tab.classList.toggle("is-active", tab.dataset.adminTab === "sounds");
   });
   renderAdmin();
+  feedback.textContent = "Новое правило добавлено. Заполни поля ниже.";
+  window.requestAnimationFrame(() => {
+    soundSection.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 });
 
 saveButton.addEventListener("click", () => {

@@ -1316,6 +1316,16 @@ h1 {
   background: rgba(255, 250, 240, 0.95);
 }
 
+.admin-actions--top {
+  position: static;
+  margin: 12px 0 14px;
+}
+
+.admin-actions .rules-button {
+  min-height: 42px;
+  margin-top: 0;
+}
+
 .secondary-button,
 .danger-button {
   display: inline-flex;
