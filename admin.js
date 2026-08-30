@@ -315,7 +315,7 @@ function renderDayBoard() {
       button.classList.toggle("is-review", isWeekendDate && isCurrentMonth);
       button.classList.toggle("is-disabled-day", !isWeekendDate && !dayIsEnabled && isCurrentMonth);
       button.disabled = !isCurrentMonth;
-      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : dayIsEnabled ? `${phrasesForDay.length}/5` : "Выкл."}</span>`;
+      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : dayIsEnabled ? `${phrasesForDay.length}/5` : "Нет ур."}</span>`;
       button.setAttribute("aria-label", `${date.getDate()}: ${dayOptions[dayIndex].label}`);
       button.addEventListener("click", () => selectAdminDay(dayIndex));
       adminMonthCalendar.append(button);
@@ -371,7 +371,7 @@ function renderDaySummary() {
     toggle.className = "admin-day-toggle";
 
     const toggleText = document.createElement("span");
-    toggleText.innerHTML = `<b>Показывать клиенту</b><em>${dayIsEnabled ? "Включено: когда этот день наступит, слова появятся у клиента." : "Выключено: клиент не увидит новые слова этого дня."}</em>`;
+    toggleText.innerHTML = `<b>Показывать клиенту</b><em>${dayIsEnabled ? "Включено: урок появится у клиента только когда эта дата наступит." : "Выключено: в клиентской части будет написано, что в этот день нет урока."}</em>`;
 
     const input = document.createElement("input");
     input.type = "checkbox";
@@ -380,8 +380,8 @@ function renderDaySummary() {
       setAdminDayEnabled(activeDay, input.checked);
       persistDraft();
       feedback.textContent = input.checked
-        ? "День включён. Скачай content.json и загрузи его в папку data на GitHub."
-        : "День выключен. Скачай content.json и загрузи его в папку data на GitHub.";
+        ? "День включён. Будущие даты всё равно откроются только в свой день. Скачай content.json и загрузи его в папку data на GitHub."
+        : "День выключен. У клиента будет написано, что в этот день нет урока. Скачай content.json и загрузи его в папку data на GitHub.";
       renderAdmin();
     });
 

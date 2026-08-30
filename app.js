@@ -349,7 +349,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.0.9";
+const appVersion = "2.0.10";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35", lightText: "#0f4d35", darkText: "#8ce0b4" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63", lightText: "#155e63", darkText: "#8bdde2" },
@@ -663,11 +663,12 @@ function updateScheduleCopy() {
 
     const dayName = fullWeekDays[dayIndex];
     if (!isLearningDayEnabled(dayIndex)) {
-      scheduleTitle.textContent = "Этот день пока выключен.";
-      scheduleSubtitle.textContent = "В админке этот день отключен, поэтому новые слова клиенту пока не показываются.";
-      lessonKicker.textContent = "День выключен";
+      scheduleTitle.textContent = "В этот день нет урока.";
+      scheduleSubtitle.textContent = "Этот день выключен в админке, поэтому новые слова клиенту не показываются.";
+      lessonKicker.textContent = "Нет урока";
       lessonTitle.textContent = selectedDateLabel;
-      lessonNote.textContent = "Когда включишь этот день в админке и загрузишь content.json на GitHub, слова появятся здесь.";
+      lessonNote.textContent =
+        "Если включить этот день в админке и загрузить content.json на GitHub, урок появится только когда эта дата уже наступит.";
       return;
     }
 
@@ -687,9 +688,9 @@ function updateScheduleCopy() {
   }
 
   if (!isLearningDayEnabled(todayIndex)) {
-    scheduleTitle.textContent = "Сегодняшний день пока выключен.";
+    scheduleTitle.textContent = "В этот день нет урока.";
     scheduleSubtitle.textContent =
-      "Новые слова появятся, когда этот день будет включён в админке и обновленный content.json будет загружен на GitHub.";
+      "Сегодняшний день выключен в админке. Даже если дата уже наступила, слова появятся только после включения этого дня.";
     return;
   }
 
@@ -833,7 +834,7 @@ function renderMonthCalendar() {
         : !isAvailable
           ? "Закр."
           : !isWeekendDate && !dayIsEnabled
-            ? "Выкл."
+            ? "Нет ур."
           : isWeekendDate
             ? "Повт."
             : `${learnedCountForDate}/${lessonPhrases.length}`;
@@ -919,7 +920,7 @@ function renderPhrases() {
     const dayIndex = state.selectedDate ? getCalendarDayIndex(state.selectedDate) : todayIndex;
     empty.textContent =
       state.scope === "schedule" && dayIndex <= 4 && !isLearningDayEnabled(dayIndex)
-        ? "Этот день пока выключен в админке. Когда его включат, слова появятся здесь."
+        ? "В этот день нет урока. День выключен в админке."
         : "Такой фразы пока нет в этом наборе.";
     phraseGrid.append(empty);
     return;
@@ -975,7 +976,7 @@ function newQuestion() {
   if (!quizPool.length) {
     state.quiz = null;
     quizFeedback.textContent = "";
-    questionRussian.textContent = "Пока нет слов для тренировки.";
+    questionRussian.textContent = "В этот день нет урока.";
     answerOptions.innerHTML = "";
     return;
   }
@@ -1142,6 +1143,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.0.9").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.0.10").catch(() => {});
   });
 }
