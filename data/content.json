@@ -71,28 +71,6 @@
       "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/K+I.mp3"
     }
   ],
-  "daySettings": [
-    {
-      "day": 0,
-      "enabled": true
-    },
-    {
-      "day": 1,
-      "enabled": true
-    },
-    {
-      "day": 2,
-      "enabled": true
-    },
-    {
-      "day": 3,
-      "enabled": true
-    },
-    {
-      "day": 4,
-      "enabled": true
-    }
-  ],
   "phrases": [
     {
       "id": "salam",
@@ -103,7 +81,8 @@
       "chechen": "Салам",
       "pronunciation": "салам",
       "query": "привет здравствуй салам",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-24"
     },
     {
       "id": "marshalla",
@@ -114,7 +93,8 @@
       "chechen": "Маршалла ду хьоьга",
       "pronunciation": "маршалла ду хьога",
       "query": "здравствуйте приветствие",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-24"
     },
     {
       "id": "morning",
@@ -125,7 +105,8 @@
       "chechen": "Iуьйре дика хуьлда",
       "pronunciation": "уьйре дика хуьлда",
       "query": "доброе утро",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-24"
     },
     {
       "id": "day",
@@ -136,7 +117,8 @@
       "chechen": "Де дика хуьлда",
       "pronunciation": "де дика хуьлда",
       "query": "добрый день",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-24"
     },
     {
       "id": "evening",
@@ -147,7 +129,8 @@
       "chechen": "Суьйре дика хуьлда",
       "pronunciation": "суьйре дика хуьлда",
       "query": "добрый вечер",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-24"
     },
     {
       "id": "goodbye",
@@ -158,7 +141,8 @@
       "chechen": "Марша Iайла",
       "pronunciation": "марша айла",
       "query": "до свидания пока",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-25"
     },
     {
       "id": "thanks",
@@ -169,7 +153,8 @@
       "chechen": "Баркалла",
       "pronunciation": "баркалла",
       "query": "спасибо благодарю",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-25"
     },
     {
       "id": "welcome",
@@ -180,7 +165,8 @@
       "chechen": "Массарна а",
       "pronunciation": "массарна а",
       "query": "пожалуйста не за что",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-25"
     },
     {
       "id": "excuse",
@@ -191,7 +177,8 @@
       "chechen": "Бехк ма биллахь",
       "pronunciation": "бехк ма биллахь",
       "query": "извините простите",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-25"
     },
     {
       "id": "wait",
@@ -202,7 +189,8 @@
       "chechen": "Собар де",
       "pronunciation": "собар де",
       "query": "подождите жди",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-25"
     },
     {
       "id": "yes",
@@ -213,7 +201,8 @@
       "chechen": "ХIаъ",
       "pronunciation": "хьа",
       "query": "да согласие",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-26"
     },
     {
       "id": "no",
@@ -224,7 +213,8 @@
       "chechen": "ХIан-хIа",
       "pronunciation": "хан-ха",
       "query": "нет отказ",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-26"
     },
     {
       "id": "maybe",
@@ -235,7 +225,8 @@
       "chechen": "Хила тарло",
       "pronunciation": "хила тарло",
       "query": "может быть возможно",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-26"
     },
     {
       "id": "repeat",
@@ -246,7 +237,8 @@
       "chechen": "Юхаала хьар ахь",
       "pronunciation": "юхаала хьар ахь",
       "query": "повторите пожалуйста снова",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-26"
     },
     {
       "id": "write",
@@ -257,7 +249,8 @@
       "chechen": "Яздан хьар ахь",
       "pronunciation": "яздан хьар ахь",
       "query": "напишите пожалуйста",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-26"
     },
     {
       "id": "howareyou",
@@ -268,7 +261,8 @@
       "chechen": "Муха ду гIуллакхаш?",
       "pronunciation": "муха ду гуллакхаш",
       "query": "как дела",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-27"
     },
     {
       "id": "fine",
@@ -279,7 +273,8 @@
       "chechen": "Дика ду, баркалла",
       "pronunciation": "дика ду, баркалла",
       "query": "хорошо спасибо",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-27"
     },
     {
       "id": "name",
@@ -290,7 +285,8 @@
       "chechen": "Хьан цIе хIун ю?",
       "pronunciation": "хьан це хун ю",
       "query": "имя зовут",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-27"
     },
     {
       "id": "myname",
@@ -301,7 +297,8 @@
       "chechen": "Сан цIе ... ю",
       "pronunciation": "сан це ... ю",
       "query": "меня зовут имя",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-27"
     },
     {
       "id": "nice",
@@ -312,7 +309,8 @@
       "chechen": "Девзина хаза хета",
       "pronunciation": "девзина хаза хета",
       "query": "приятно познакомиться",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-27"
     },
     {
       "id": "understand",
@@ -323,7 +321,8 @@
       "chechen": "Со кхета",
       "pronunciation": "со кхета",
       "query": "понимаю",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-28"
     },
     {
       "id": "dontunderstand",
@@ -334,7 +333,8 @@
       "chechen": "Со ца кхета",
       "pronunciation": "со ца кхета",
       "query": "не понимаю",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-28"
     },
     {
       "id": "dontknow",
@@ -345,7 +345,8 @@
       "chechen": "Суна ца хаа",
       "pronunciation": "суна ца хаа",
       "query": "не знаю",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-28"
     },
     {
       "id": "speakchechen",
@@ -356,7 +357,8 @@
       "chechen": "Ахь нохчийн мотт бийций?",
       "pronunciation": "ахь нохчийн мотт бийций",
       "query": "говоришь по чеченски",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-28"
     },
     {
       "id": "little",
@@ -367,7 +369,30 @@
       "chechen": "ХIаъ, цхьан жимма",
       "pronunciation": "хьа, цхьан жимма",
       "query": "да немного чуть чуть",
-      "audioUrl": ""
+      "audioUrl": "",
+      "date": "2026-08-28"
+    }
+  ],
+  "lessonSettings": [
+    {
+      "date": "2026-08-24",
+      "enabled": true
+    },
+    {
+      "date": "2026-08-25",
+      "enabled": true
+    },
+    {
+      "date": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "date": "2026-08-27",
+      "enabled": true
+    },
+    {
+      "date": "2026-08-28",
+      "enabled": true
     }
   ]
 }

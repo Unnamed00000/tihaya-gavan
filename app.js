@@ -6,6 +6,7 @@ const daySettings = [
   { day: 3, enabled: true },
   { day: 4, enabled: true },
 ];
+const lessonSettings = [];
 const calendarWeekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const fullWeekDays = ["понедельник", "вторник", "среду", "четверг", "пятницу"];
 const monthNames = [
@@ -349,7 +350,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.0.10";
+const appVersion = "2.1.0";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35", lightText: "#0f4d35", darkText: "#8ce0b4" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63", lightText: "#155e63", darkText: "#8bdde2" },
@@ -380,7 +381,10 @@ function addMissingDefaultSoundUnits() {
   });
 }
 
-window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases, daySettings }));
+lessonSettings.splice(0, lessonSettings.length, ...normalizeLessonSettings([], daySettings));
+normalizePhraseSchedules(phrases);
+
+window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases, daySettings, lessonSettings }));
 window.tihayaContentStorageKey = contentStorageKey;
 window.tihayaContentDraftStorageKey = contentDraftStorageKey;
 window.tihayaRemoteContentUrl = remoteContentUrl;
@@ -389,7 +393,12 @@ try {
   const savedContent = JSON.parse(localStorage.getItem(contentStorageKey) || "null");
   if (savedContent?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...savedContent.soundUnits);
   if (savedContent?.phrases?.length) phrases.splice(0, phrases.length, ...savedContent.phrases);
-  if (savedContent?.daySettings?.length) daySettings.splice(0, daySettings.length, ...normalizeDaySettings(savedContent.daySettings));
+  lessonSettings.splice(
+    0,
+    lessonSettings.length,
+    ...normalizeLessonSettings(savedContent?.lessonSettings, savedContent?.daySettings),
+  );
+  normalizePhraseSchedules(phrases);
   addMissingDefaultSoundUnits();
 } catch {
   localStorage.removeItem(contentStorageKey);
@@ -405,7 +414,7 @@ function loadSettings() {
   }
 }
 
-window.tihayaContent = { soundUnits, phrases, daySettings };
+window.tihayaContent = { soundUnits, phrases, daySettings, lessonSettings };
 
 function normalizeDaySettings(nextSettings = []) {
   return [0, 1, 2, 3, 4].map((day) => {
@@ -414,12 +423,64 @@ function normalizeDaySettings(nextSettings = []) {
   });
 }
 
+function isValidDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || "");
+}
+
+function getWeekStart(date) {
+  const weekStart = startOfDay(date);
+  weekStart.setDate(weekStart.getDate() - getCalendarDayIndex(weekStart));
+  return weekStart;
+}
+
+function getLegacyDateKeyForDay(day) {
+  const date = getWeekStart(todayDate);
+  date.setDate(date.getDate() + Math.min(4, Math.max(0, Number(day) || 0)));
+  return formatRouteDate(date);
+}
+
+function getPhraseDateKey(phrase) {
+  if (isValidDateKey(phrase?.date)) return phrase.date;
+  if (isValidDateKey(phrase?.lessonDate)) return phrase.lessonDate;
+  return getLegacyDateKeyForDay(phrase?.day);
+}
+
+function normalizePhraseSchedules(items) {
+  items.forEach((phrase) => {
+    const dateKey = getPhraseDateKey(phrase);
+    const date = parseRouteDate(dateKey);
+    phrase.date = dateKey;
+    phrase.day = date ? Math.min(4, getCalendarDayIndex(date)) : Number(phrase.day) || 0;
+  });
+}
+
+function normalizeLessonSettings(nextSettings = [], legacySettings = []) {
+  const normalized = [];
+  const addSetting = (date, enabled) => {
+    if (!isValidDateKey(date) || normalized.some((item) => item.date === date)) return;
+    normalized.push({ date, enabled: enabled !== false });
+  };
+
+  (Array.isArray(nextSettings) ? nextSettings : []).forEach((setting) => {
+    addSetting(setting.date || setting.lessonDate, setting.enabled);
+  });
+
+  if (!normalized.length) {
+    normalizeDaySettings(Array.isArray(legacySettings) ? legacySettings : daySettings).forEach((setting) => {
+      addSetting(getLegacyDateKeyForDay(setting.day), setting.enabled);
+    });
+  }
+
+  return normalized;
+}
+
 function applySharedContent(content) {
   if (content?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...content.soundUnits);
   if (content?.phrases?.length) phrases.splice(0, phrases.length, ...content.phrases);
-  daySettings.splice(0, daySettings.length, ...normalizeDaySettings(content?.daySettings));
+  lessonSettings.splice(0, lessonSettings.length, ...normalizeLessonSettings(content?.lessonSettings, content?.daySettings));
+  normalizePhraseSchedules(phrases);
   addMissingDefaultSoundUnits();
-  window.tihayaContent = { soundUnits, phrases, daySettings };
+  window.tihayaContent = { soundUnits, phrases, daySettings, lessonSettings };
 }
 
 const state = {
@@ -571,6 +632,12 @@ function formatRouteDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+function formatPhraseDateLabel(phrase) {
+  const date = parseRouteDate(getPhraseDateKey(phrase));
+  if (!date) return weekDays[Number(phrase.day) || 0] || "День";
+  return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+}
+
 function parseRouteDate(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
   if (!match) return null;
@@ -593,9 +660,8 @@ function getSchedulePhrases() {
   const date = state.selectedDate || todayDate;
   const dayIndex = getCalendarDayIndex(date);
 
-  if (dayIndex > 4) return getPublishedPhrases();
-  if (!isLearningDayEnabled(dayIndex)) return [];
-  return phrases.filter((phrase) => phrase.day === dayIndex);
+  if (dayIndex > 4) return getReviewPhrasesForWeek(date);
+  return getLessonPhrasesForDate(date);
 }
 
 function isDayAvailable(index) {
@@ -606,17 +672,43 @@ function isCalendarDateAvailable(date) {
   return startOfDay(date).getTime() <= todayDate.getTime();
 }
 
-function isLearningDayEnabled(dayIndex) {
+function isLessonEnabledForDate(date) {
+  const dayIndex = getCalendarDayIndex(date);
   if (dayIndex > 4) return true;
-  return daySettings.find((item) => Number(item.day) === Number(dayIndex))?.enabled !== false;
+  const dateKey = formatRouteDate(date);
+  return lessonSettings.find((item) => item.date === dateKey)?.enabled !== false;
 }
 
-function getPublishedPhrases() {
-  return phrases.filter((phrase) => isLearningDayEnabled(Number(phrase.day)));
+function getLessonPhrasesForDate(date, options = {}) {
+  const dayIndex = getCalendarDayIndex(date);
+  if (dayIndex > 4) return [];
+  if (!options.ignoreEnabled && !isLessonEnabledForDate(date)) return [];
+  const dateKey = formatRouteDate(date);
+  return phrases.filter((phrase) => getPhraseDateKey(phrase) === dateKey);
+}
+
+function getReviewPhrasesForWeek(date) {
+  const weekStart = getWeekStart(date);
+  const weekDates = [0, 1, 2, 3, 4].map((offset) => {
+    const item = new Date(weekStart);
+    item.setDate(weekStart.getDate() + offset);
+    return item;
+  });
+  const enabledDateKeys = new Set(
+    weekDates
+      .filter((item) => startOfDay(item).getTime() <= todayDate.getTime() && isLessonEnabledForDate(item))
+      .map(formatRouteDate),
+  );
+
+  return phrases.filter((phrase) => enabledDateKeys.has(getPhraseDateKey(phrase)));
 }
 
 function getAvailablePhrases() {
-  return phrases.filter((phrase) => isDayAvailable(phrase.day) && isLearningDayEnabled(phrase.day));
+  return phrases.filter((phrase) => {
+    const date = parseRouteDate(getPhraseDateKey(phrase));
+    if (!date || getCalendarDayIndex(date) > 4) return false;
+    return startOfDay(date).getTime() <= todayDate.getTime() && isLessonEnabledForDate(date);
+  });
 }
 
 function getScopePhrases() {
@@ -652,23 +744,29 @@ function updateScheduleCopy() {
     const selectedDateLabel = formatLessonDate(state.selectedDate);
 
     if (dayIndex > 4) {
+      const reviewCount = getReviewPhrasesForWeek(state.selectedDate).length;
       scheduleTitle.textContent = "Повторение всей недели.";
       scheduleSubtitle.textContent =
-        "В выходной день новые слова не открываются: повтори материал тех дней, которые включены в админке.";
+        reviewCount
+          ? "В выходной день новые слова не открываются: повтори материал этой недели."
+          : "Для этой недели пока нет открытых уроков для повторения.";
       lessonKicker.textContent = "Повторение";
       lessonTitle.textContent = selectedDateLabel;
-      lessonNote.textContent = "Открыты все слова включённых дней недели для закрепления.";
+      lessonNote.textContent = reviewCount
+        ? "Открыты слова с понедельника по пятницу именно этой недели."
+        : "Когда в этой неделе появятся включённые уроки, они будут собираться здесь.";
       return;
     }
 
     const dayName = fullWeekDays[dayIndex];
-    if (!isLearningDayEnabled(dayIndex)) {
+    const lessonPhrases = getLessonPhrasesForDate(state.selectedDate);
+    if (!lessonPhrases.length) {
       scheduleTitle.textContent = "В этот день нет урока.";
-      scheduleSubtitle.textContent = "Этот день выключен в админке, поэтому новые слова клиенту не показываются.";
+      scheduleSubtitle.textContent = "Для этой конкретной даты урок не включён или слова ещё не добавлены.";
       lessonKicker.textContent = "Нет урока";
       lessonTitle.textContent = selectedDateLabel;
       lessonNote.textContent =
-        "Если включить этот день в админке и загрузить content.json на GitHub, урок появится только когда эта дата уже наступит.";
+        "Когда в админке добавят слова именно на эту дату и включат урок, материал появится здесь.";
       return;
     }
 
@@ -681,16 +779,19 @@ function updateScheduleCopy() {
   }
 
   if (isWeekend) {
+    const reviewCount = getReviewPhrasesForWeek(todayDate).length;
     scheduleTitle.textContent = "Выходные: повторение всей недели.";
     scheduleSubtitle.textContent =
-      "Сегодня новые слова не открываются. Повтори слова из включённых дней с понедельника по пятницу.";
+      reviewCount
+        ? "Сегодня новые слова не открываются. Повтори слова этой недели с понедельника по пятницу."
+        : "Для этой недели пока нет открытых уроков для повторения.";
     return;
   }
 
-  if (!isLearningDayEnabled(todayIndex)) {
+  if (!getLessonPhrasesForDate(todayDate).length) {
     scheduleTitle.textContent = "В этот день нет урока.";
     scheduleSubtitle.textContent =
-      "Сегодняшний день выключен в админке. Даже если дата уже наступила, слова появятся только после включения этого дня.";
+      "На сегодняшнюю конкретную дату слова ещё не добавлены или урок выключен в админке.";
     return;
   }
 
@@ -810,12 +911,12 @@ function renderMonthCalendar() {
       const isCurrentMonth = date.getMonth() === state.calendarMonth;
       const isAvailable = isCalendarDateAvailable(date);
       const isWeekendDate = dayIndex > 4;
-      const dayIsEnabled = isLearningDayEnabled(dayIndex);
+      const lessonPhrasesForDate = getLessonPhrasesForDate(date);
+      const hasLesson = lessonPhrasesForDate.length > 0;
+      const dateIsEnabled = isLessonEnabledForDate(date);
       const lessonPhrases = isWeekendDate
-        ? getPublishedPhrases()
-        : dayIsEnabled
-          ? phrases.filter((phrase) => phrase.day === dayIndex)
-          : [];
+        ? getReviewPhrasesForWeek(date)
+        : lessonPhrasesForDate;
       const learnedCountForDate = lessonPhrases.filter((phrase) => state.learned.has(phrase.id)).length;
 
       const item = document.createElement("button");
@@ -826,14 +927,14 @@ function renderMonthCalendar() {
       item.classList.toggle("is-today", isSameDate(date, todayDate));
       item.classList.toggle("is-selected", state.selectedDate && isSameDate(date, state.selectedDate));
       item.classList.toggle("is-locked", !isAvailable && isCurrentMonth);
-      item.classList.toggle("is-disabled-day", !isWeekendDate && isAvailable && isCurrentMonth && !dayIsEnabled);
+      item.classList.toggle("is-disabled-day", !isWeekendDate && isAvailable && isCurrentMonth && (!dateIsEnabled || !hasLesson));
       item.classList.toggle("is-review", isWeekendDate && isAvailable && isCurrentMonth);
 
       const status = !isCurrentMonth
         ? ""
         : !isAvailable
           ? "Закр."
-          : !isWeekendDate && !dayIsEnabled
+          : !isWeekendDate && (!dateIsEnabled || !hasLesson)
             ? "Нет ур."
           : isWeekendDate
             ? "Повт."
@@ -862,7 +963,7 @@ async function loadRemoteContent() {
     if (!response.ok) return;
     const remoteContent = await response.json();
     applySharedContent(remoteContent);
-    localStorage.setItem(contentStorageKey, JSON.stringify({ soundUnits, phrases, daySettings }));
+    localStorage.setItem(contentStorageKey, JSON.stringify({ soundUnits, phrases, lessonSettings }));
     updateScheduleCopy();
     updateStats();
     renderSoundUnits();
@@ -919,8 +1020,8 @@ function renderPhrases() {
     empty.className = "pronunciation";
     const dayIndex = state.selectedDate ? getCalendarDayIndex(state.selectedDate) : todayIndex;
     empty.textContent =
-      state.scope === "schedule" && dayIndex <= 4 && !isLearningDayEnabled(dayIndex)
-        ? "В этот день нет урока. День выключен в админке."
+      state.scope === "schedule" && dayIndex <= 4
+        ? "В этот день нет урока."
         : "Такой фразы пока нет в этом наборе.";
     phraseGrid.append(empty);
     return;
@@ -929,7 +1030,7 @@ function renderPhrases() {
   visiblePhrases.forEach((phrase) => {
     const card = template.content.firstElementChild.cloneNode(true);
     card.querySelector(".tag").textContent = phrase.tag;
-    card.querySelector(".day-pill").textContent = weekDays[phrase.day];
+    card.querySelector(".day-pill").textContent = formatPhraseDateLabel(phrase);
     card.querySelector(".russian").textContent = phrase.russian;
     card.querySelector(".chechen").textContent = phrase.chechen;
     card.querySelector(".pronunciation").textContent = phrase.pronunciation;
@@ -1143,6 +1244,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.0.10").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.1.0").catch(() => {});
   });
 }

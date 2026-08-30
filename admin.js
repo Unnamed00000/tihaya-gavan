@@ -1,7 +1,7 @@
 (() => {
 const contentKey = window.tihayaContentStorageKey || "tihayaContent";
 const contentDraftKey = window.tihayaContentDraftStorageKey || "tihayaContentDraft";
-const factoryDefaults = window.tihayaFactoryDefaults || { soundUnits: [], phrases: [] };
+const factoryDefaults = window.tihayaFactoryDefaults || { soundUnits: [], phrases: [], lessonSettings: [], daySettings: [] };
 const remoteContentUrl = window.tihayaRemoteContentUrl || "./data/content.json";
 const dayOptions = [
   { value: 0, short: "Пн", label: "Понедельник", mode: "lesson" },
@@ -64,7 +64,8 @@ function readStoredContent() {
 
 let content = mergeContentWithFactoryDefaults(readStoredContent());
 let activeTab = "phrases";
-let activeDay = 0;
+let activeDate = new Date(adminToday.getFullYear(), adminToday.getMonth(), adminToday.getDate());
+let activeDay = getAdminCalendarDayIndex(activeDate);
 let adminCalendarYear = adminToday.getFullYear();
 let adminCalendarMonth = adminToday.getMonth();
 
@@ -108,11 +109,68 @@ function isSameAdminDate(first, second) {
   );
 }
 
+function formatAdminDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseAdminDateKey(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatAdminLongDate(date) {
+  return date.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    weekday: "long",
+  });
+}
+
+function getAdminWeekStart(date) {
+  const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  weekStart.setDate(weekStart.getDate() - getAdminCalendarDayIndex(weekStart));
+  return weekStart;
+}
+
+function getLegacyDateKeyForDay(day) {
+  const date = getAdminWeekStart(adminToday);
+  date.setDate(date.getDate() + Math.min(4, Math.max(0, Number(day) || 0)));
+  return formatAdminDateKey(date);
+}
+
+function isValidDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || "");
+}
+
+function getPhraseDateKey(phrase) {
+  if (isValidDateKey(phrase?.date)) return phrase.date;
+  if (isValidDateKey(phrase?.lessonDate)) return phrase.lessonDate;
+  return getLegacyDateKeyForDay(phrase?.day);
+}
+
+function normalizePhraseSchedule(phrase) {
+  const dateKey = getPhraseDateKey(phrase);
+  const date = parseAdminDateKey(dateKey);
+  phrase.date = dateKey;
+  phrase.day = date ? Math.min(4, getAdminCalendarDayIndex(date)) : Number(phrase.day) || 0;
+  return phrase;
+}
+
+function normalizePhrases(items = []) {
+  return items.map((phrase) => normalizePhraseSchedule({ ...phrase }));
+}
+
 function mergeContentWithFactoryDefaults(nextContent) {
   const mergedContent = {
     soundUnits: nextContent?.soundUnits?.length ? nextContent.soundUnits : clone(factoryDefaults.soundUnits),
-    phrases: nextContent?.phrases?.length ? nextContent.phrases : clone(factoryDefaults.phrases),
-    daySettings: normalizeDaySettings(nextContent?.daySettings || factoryDefaults.daySettings),
+    phrases: normalizePhrases(nextContent?.phrases?.length ? nextContent.phrases : clone(factoryDefaults.phrases)),
+    lessonSettings: normalizeLessonSettings(nextContent?.lessonSettings, nextContent?.daySettings || factoryDefaults.daySettings),
   };
   const existingKeys = new Set(mergedContent.soundUnits.map(getSoundKey));
 
@@ -132,21 +190,48 @@ function normalizeDaySettings(nextSettings = []) {
   });
 }
 
-function isAdminDayEnabled(dayIndex) {
-  if (dayIndex > 4) return true;
-  return content.daySettings.find((item) => Number(item.day) === Number(dayIndex))?.enabled !== false;
+function normalizeLessonSettings(nextSettings = [], legacySettings = []) {
+  const normalized = [];
+  const addSetting = (date, enabled) => {
+    if (!isValidDateKey(date) || normalized.some((item) => item.date === date)) return;
+    normalized.push({ date, enabled: enabled !== false });
+  };
+
+  (Array.isArray(nextSettings) ? nextSettings : []).forEach((setting) => {
+    addSetting(setting.date || setting.lessonDate, setting.enabled);
+  });
+
+  if (!normalized.length) {
+    normalizeDaySettings(Array.isArray(legacySettings) ? legacySettings : []).forEach((setting) => {
+      addSetting(getLegacyDateKeyForDay(setting.day), setting.enabled);
+    });
+  }
+
+  return normalized;
 }
 
-function setAdminDayEnabled(dayIndex, enabled) {
-  const nextSettings = normalizeDaySettings(content.daySettings);
-  const setting = nextSettings.find((item) => Number(item.day) === Number(dayIndex));
-  if (setting) setting.enabled = enabled;
-  content.daySettings = nextSettings;
+function isAdminDateEnabled(date) {
+  const dayIndex = getAdminCalendarDayIndex(date);
+  if (dayIndex > 4) return true;
+  const dateKey = formatAdminDateKey(date);
+  return content.lessonSettings.find((item) => item.date === dateKey)?.enabled !== false;
+}
+
+function setAdminDateEnabled(date, enabled) {
+  const dateKey = formatAdminDateKey(date);
+  const nextSettings = normalizeLessonSettings(content.lessonSettings);
+  const existing = nextSettings.find((item) => item.date === dateKey);
+  if (existing) {
+    existing.enabled = enabled;
+  } else {
+    nextSettings.push({ date: dateKey, enabled });
+  }
+  content.lessonSettings = nextSettings;
 }
 
 function getCleanContent() {
   return {
-    daySettings: normalizeDaySettings(content.daySettings),
+    lessonSettings: normalizeLessonSettings(content.lessonSettings),
     soundUnits: content.soundUnits.map((unit) => ({
       formula: unit.formula || "",
       title: unit.title || "",
@@ -154,9 +239,14 @@ function getCleanContent() {
       example: unit.example || "",
       audioUrl: unit.audioUrl || "",
     })),
-    phrases: content.phrases.map((phrase) => ({
+    phrases: content.phrases.map((phrase) => {
+      const dateKey = getPhraseDateKey(phrase);
+      const date = parseAdminDateKey(dateKey);
+      const day = date ? Math.min(4, getAdminCalendarDayIndex(date)) : Number(phrase.day) || 0;
+      return {
       id: phrase.id || `phrase-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      day: Number(phrase.day) || 0,
+      date: dateKey,
+      day,
       category: phrase.category || "talk",
       tag: phrase.tag || "Разговор",
       russian: phrase.russian || "",
@@ -164,7 +254,8 @@ function getCleanContent() {
       pronunciation: phrase.pronunciation || "",
       query: phrase.query || "",
       audioUrl: phrase.audioUrl || "",
-    })),
+      };
+    }),
   };
 }
 
@@ -301,87 +392,105 @@ function renderDayBoard() {
       const dayIndex = getAdminCalendarDayIndex(date);
       const isCurrentMonth = date.getMonth() === adminCalendarMonth;
       const isWeekendDate = dayIndex > 4;
-      const dayIsEnabled = isAdminDayEnabled(dayIndex);
-      const phrasesForDay = isWeekendDate
-        ? content.phrases.filter((phrase) => isAdminDayEnabled(Number(phrase.day)))
-        : content.phrases.filter((phrase) => Number(phrase.day) === dayIndex);
+      const dateKey = formatAdminDateKey(date);
+      const dateIsEnabled = isAdminDateEnabled(date);
+      const phrasesForDay = isWeekendDate ? getWeekPhrasesForAdminDate(date) : getPhrasesForAdminDate(date);
 
       const button = document.createElement("button");
       button.type = "button";
       button.className = "calendar-day admin-calendar-day";
       button.classList.toggle("is-outside", !isCurrentMonth);
       button.classList.toggle("is-today", isSameAdminDate(date, adminToday));
-      button.classList.toggle("is-selected", activeDay === dayIndex && isCurrentMonth);
+      button.classList.toggle("is-selected", isSameAdminDate(date, activeDate) && isCurrentMonth);
       button.classList.toggle("is-review", isWeekendDate && isCurrentMonth);
-      button.classList.toggle("is-disabled-day", !isWeekendDate && !dayIsEnabled && isCurrentMonth);
+      button.classList.toggle("is-disabled-day", !isWeekendDate && (!dateIsEnabled || !phrasesForDay.length) && isCurrentMonth);
       button.disabled = !isCurrentMonth;
-      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : dayIsEnabled ? `${phrasesForDay.length}/5` : "Нет ур."}</span>`;
-      button.setAttribute("aria-label", `${date.getDate()}: ${dayOptions[dayIndex].label}`);
-      button.addEventListener("click", () => selectAdminDay(dayIndex));
+      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : dateIsEnabled && phrasesForDay.length ? `${phrasesForDay.length}/5` : "Нет ур."}</span>`;
+      button.setAttribute("aria-label", `${dateKey}: ${dayOptions[dayIndex].label}`);
+      button.addEventListener("click", () => selectAdminDate(date));
       adminMonthCalendar.append(button);
     });
   }
 }
 
-function selectAdminDay(dayIndex) {
-  activeDay = dayIndex;
+function selectAdminDate(date) {
+  activeDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  activeDay = getAdminCalendarDayIndex(activeDate);
   renderAdmin();
   window.requestAnimationFrame(() => {
     daySummary.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 
+function getPhrasesForAdminDate(date) {
+  const dateKey = formatAdminDateKey(date);
+  return content.phrases.filter((phrase) => getPhraseDateKey(phrase) === dateKey);
+}
+
+function getWeekPhrasesForAdminDate(date) {
+  const weekStart = getAdminWeekStart(date);
+  const enabledDateKeys = new Set(
+    [0, 1, 2, 3, 4].map((offset) => {
+      const item = new Date(weekStart);
+      item.setDate(weekStart.getDate() + offset);
+      return item;
+    }).filter(isAdminDateEnabled).map(formatAdminDateKey),
+  );
+
+  return content.phrases.filter((phrase) => enabledDateKeys.has(getPhraseDateKey(phrase)));
+}
+
 function getActivePhrasesWithIndex() {
+  const activeDateKey = formatAdminDateKey(activeDate);
+  const activeWeekPhrases = activeDay > 4 ? new Set(getWeekPhrasesForAdminDate(activeDate).map((phrase) => phrase.id)) : null;
   return content.phrases
     .map((phrase, index) => ({ phrase, index }))
-    .filter(({ phrase }) => activeDay > 4 || Number(phrase.day) === activeDay);
+    .filter(({ phrase }) => {
+      if (activeDay > 4) return activeWeekPhrases.has(phrase.id);
+      return getPhraseDateKey(phrase) === activeDateKey;
+    });
 }
 
 function renderDaySummary() {
   daySummary.innerHTML = "";
 
   const day = dayOptions.find((item) => item.value === activeDay);
-  const weekdayCounts = dayOptions
-    .slice(0, 5)
-    .map((item) => content.phrases.filter((phrase) => Number(phrase.day) === item.value).length);
-  const totalWeekPhrases = weekdayCounts.reduce(
-    (sum, count, dayIndex) => sum + (isAdminDayEnabled(dayIndex) ? count : 0),
-    0,
-  );
+  const activeDateLabel = formatAdminLongDate(activeDate);
+  const currentCount = getPhrasesForAdminDate(activeDate).length;
+  const totalWeekPhrases = getWeekPhrasesForAdminDate(activeDate).length;
 
   if (activeDay > 4) {
     const heading = document.createElement("strong");
-    heading.textContent = `${day.label}: повторение`;
+    heading.textContent = `${activeDateLabel}: повторение`;
 
     const text = document.createElement("span");
-    text.textContent = `Клиент увидит слова только из включённых дней недели: ${totalWeekPhrases}. Новые слова в выходные не добавляются, но ниже можно редактировать слова всей недели.`;
+    text.textContent = `Клиент увидит слова только из включённых дат этой недели: ${totalWeekPhrases}. Новые слова в выходные не добавляются, но ниже можно редактировать слова выбранной недели.`;
 
     daySummary.append(heading, text);
   } else {
-    const currentCount = weekdayCounts[activeDay];
-    const dayIsEnabled = isAdminDayEnabled(activeDay);
+    const dateIsEnabled = isAdminDateEnabled(activeDate);
 
     const heading = document.createElement("strong");
-    heading.textContent = day.label;
+    heading.textContent = activeDateLabel;
 
     const text = document.createElement("span");
-    text.textContent = `Для этого дня желательно 5 слов. Сейчас: ${currentCount}/5. Поля ниже можно менять сразу.`;
+    text.textContent = `Для этой конкретной даты желательно 5 слов. Сейчас: ${currentCount}/5. Следующий ${day.label.toLowerCase()} будет отдельным уроком со своими словами.`;
 
     const toggle = document.createElement("label");
     toggle.className = "admin-day-toggle";
 
     const toggleText = document.createElement("span");
-    toggleText.innerHTML = `<b>Показывать клиенту</b><em>${dayIsEnabled ? "Включено: урок появится у клиента только когда эта дата наступит." : "Выключено: в клиентской части будет написано, что в этот день нет урока."}</em>`;
+    toggleText.innerHTML = `<b>Показывать клиенту</b><em>${dateIsEnabled ? "Включено: урок этой даты появится у клиента только когда эта дата наступит." : "Выключено: в клиентской части будет написано, что в этот день нет урока."}</em>`;
 
     const input = document.createElement("input");
     input.type = "checkbox";
-    input.checked = dayIsEnabled;
+    input.checked = dateIsEnabled;
     input.addEventListener("change", () => {
-      setAdminDayEnabled(activeDay, input.checked);
+      setAdminDateEnabled(activeDate, input.checked);
       persistDraft();
       feedback.textContent = input.checked
-        ? "День включён. Будущие даты всё равно откроются только в свой день. Скачай content.json и загрузи его в папку data на GitHub."
-        : "День выключен. У клиента будет написано, что в этот день нет урока. Скачай content.json и загрузи его в папку data на GitHub.";
+        ? "Эта дата включена. Будущие даты всё равно откроются только в свой день. Скачай content.json и загрузи его в папку data на GitHub."
+        : "Эта дата выключена. У клиента будет написано, что в этот день нет урока. Скачай content.json и загрузи его в папку data на GitHub.";
       renderAdmin();
     });
 
@@ -417,10 +526,13 @@ function renderPhrasesAdmin() {
     const fields = document.createElement("div");
     fields.className = "admin-field-grid";
     fields.append(
-      makeSelect("День", phrase.day, dayOptions.slice(0, 5), (value) => {
-        phrase.day = Number(value);
+      makeField("Дата урока", getPhraseDateKey(phrase), (value) => {
+        if (!isValidDateKey(value)) return;
+        const date = parseAdminDateKey(value);
+        phrase.date = value;
+        phrase.day = date ? Math.min(4, getAdminCalendarDayIndex(date)) : Number(phrase.day) || 0;
         renderAdmin();
-      }),
+      }, "date"),
       makeSelect(
         "Категория",
         phrase.category,
@@ -601,6 +713,7 @@ addPhraseButton.addEventListener("click", () => {
   if (activeDay > 4) return;
   content.phrases.push({
     id: `phrase-${Date.now()}`,
+    date: formatAdminDateKey(activeDate),
     day: activeDay,
     category: "talk",
     tag: "Разговор",
