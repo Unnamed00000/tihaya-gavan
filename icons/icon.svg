@@ -1,6 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#0f4d35"/>
-  <path d="M96 168h320v40H96zM96 304h320v40H96z" fill="#fffaf0"/>
-  <circle cx="256" cy="256" r="88" fill="#fffaf0"/>
-  <text x="256" y="282" text-anchor="middle" font-family="Arial, sans-serif" font-size="82" font-weight="800" fill="#0f4d35">ТГ</text>
+  <rect width="512" height="512" rx="92" fill="#24763a"/>
+  <path fill="#fff" d="M0 289h512v58H0z"/>
+  <path fill="#e22721" d="M0 347h512v48H0z"/>
+  <path fill="#fff" d="M0 395h512v58H0z"/>
+  <path fill="#24763a" d="M0 453h512v59H0z"/>
+  <circle cx="256" cy="190" r="96" fill="#fff"/>
+  <circle cx="256" cy="190" r="83" fill="none" stroke="#0b0f0c" stroke-width="8"/>
+  <circle cx="304" cy="151" r="29" fill="#0b0f0c"/>
+  <path
+    fill="#0b0f0c"
+    d="M160 233c29-2 42-12 52-32 7-14 15-35 30-42 18-8 43 1 52 19 5 11 6 24 1 36 29-11 56-4 74 19H160Z"
+  />
+  <path
+    fill="none"
+    stroke="#0b0f0c"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="10"
+    d="M148 257h216l-26 35h-55c-18 0-27 9-27 24 0-15-9-24-27-24h-55l-26-35Z"
+  />
 </svg>

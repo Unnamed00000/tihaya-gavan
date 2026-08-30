@@ -350,7 +350,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.1.1";
+const appVersion = "2.1.2";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35", lightText: "#0f4d35", darkText: "#8ce0b4" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63", lightText: "#155e63", darkText: "#8bdde2" },
@@ -1381,9 +1381,7 @@ if (phraseGrid) {
 
   document.querySelector("#next-question").addEventListener("click", newQuestion);
   document.querySelector("#back-to-calendar").addEventListener("click", showCalendar);
-  document.querySelectorAll("#open-rules, #open-rules-bottom").forEach((button) => {
-    button.addEventListener("click", showRules);
-  });
+  document.querySelector("#open-rules").addEventListener("click", showRules);
   document.querySelector("#open-history")?.addEventListener("click", showHistory);
   document.querySelector("#back-from-rules").addEventListener("click", showCalendar);
   document.querySelector("#back-from-history")?.addEventListener("click", showCalendar);
@@ -1440,6 +1438,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.1.1").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.1.2").catch(() => {});
   });
 }
