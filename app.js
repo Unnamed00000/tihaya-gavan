@@ -350,7 +350,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.1.0";
+const appVersion = "2.1.1";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35", lightText: "#0f4d35", darkText: "#8ce0b4" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63", lightText: "#155e63", darkText: "#8bdde2" },
@@ -498,6 +498,7 @@ const state = {
 
 const calendarScreen = document.querySelector("#calendar-screen");
 const rulesScreen = document.querySelector("#rules-screen");
+const historyScreen = document.querySelector("#history-screen");
 const lessonContent = document.querySelector("#lesson-content");
 const phraseGrid = document.querySelector("#phrase-grid");
 const template = document.querySelector("#phrase-template");
@@ -514,6 +515,7 @@ const scheduleTitle = document.querySelector("#schedule-title");
 const scheduleSubtitle = document.querySelector("#schedule-subtitle");
 const monthCalendar = document.querySelector("#month-calendar");
 const monthTitle = document.querySelector("#month-title");
+const historyList = document.querySelector("#history-list");
 const lessonTitle = document.querySelector("#lesson-title");
 const lessonNote = document.querySelector("#lesson-note");
 const lessonKicker = document.querySelector("#lesson-kicker");
@@ -703,6 +705,59 @@ function getReviewPhrasesForWeek(date) {
   return phrases.filter((phrase) => enabledDateKeys.has(getPhraseDateKey(phrase)));
 }
 
+function formatHistoryDateRange(weekStart) {
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  if (weekStart.getMonth() === weekEnd.getMonth() && weekStart.getFullYear() === weekEnd.getFullYear()) {
+    return `${weekStart.getDate()}-${weekEnd.getDate()} ${weekEnd.toLocaleDateString("ru-RU", {
+      month: "long",
+      year: "numeric",
+    })}`;
+  }
+
+  return `${weekStart.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+  })} - ${weekEnd.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })}`;
+}
+
+function getHistoryPhrasesForWeek(weekStart) {
+  const enabledDateKeys = new Set(
+    [0, 1, 2, 3, 4].map((offset) => {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + offset);
+      return date;
+    }).filter((date) => isLessonEnabledForDate(date)).map(formatRouteDate),
+  );
+
+  return phrases.filter((phrase) => enabledDateKeys.has(getPhraseDateKey(phrase)));
+}
+
+function getCompletedHistoryWeeks() {
+  const weekKeys = new Set();
+
+  phrases.forEach((phrase) => {
+    const date = parseRouteDate(getPhraseDateKey(phrase));
+    if (!date || getCalendarDayIndex(date) > 4 || !isLessonEnabledForDate(date)) return;
+    const weekStart = getWeekStart(date);
+    const historyOpenDate = new Date(weekStart);
+    historyOpenDate.setDate(weekStart.getDate() + 7);
+    if (startOfDay(historyOpenDate).getTime() <= todayDate.getTime()) {
+      weekKeys.add(formatRouteDate(weekStart));
+    }
+  });
+
+  return [...weekKeys]
+    .map(parseRouteDate)
+    .filter(Boolean)
+    .sort((first, second) => second.getTime() - first.getTime());
+}
+
 function getAvailablePhrases() {
   return phrases.filter((phrase) => {
     const date = parseRouteDate(getPhraseDateKey(phrase));
@@ -814,6 +869,7 @@ function showCalendar(options = {}) {
   searchInput.value = "";
   calendarScreen.classList.remove("is-hidden");
   rulesScreen.classList.add("is-hidden");
+  historyScreen?.classList.add("is-hidden");
   lessonContent.classList.add("is-hidden");
   document.querySelectorAll("[data-scope]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.scope === "schedule");
@@ -827,8 +883,19 @@ function showRules(options = {}) {
   if (options.updateRoute !== false) setRoute("rules", options.replaceRoute);
   clearSelectedDay();
   calendarScreen.classList.add("is-hidden");
+  historyScreen?.classList.add("is-hidden");
   lessonContent.classList.add("is-hidden");
   rulesScreen.classList.remove("is-hidden");
+}
+
+function showHistory(options = {}) {
+  if (options.updateRoute !== false) setRoute("history", options.replaceRoute);
+  clearSelectedDay();
+  calendarScreen.classList.add("is-hidden");
+  rulesScreen.classList.add("is-hidden");
+  lessonContent.classList.add("is-hidden");
+  historyScreen?.classList.remove("is-hidden");
+  renderHistory();
 }
 
 function openDate(date, options = {}) {
@@ -846,6 +913,7 @@ function openDate(date, options = {}) {
   searchInput.value = "";
   calendarScreen.classList.add("is-hidden");
   rulesScreen.classList.add("is-hidden");
+  historyScreen?.classList.add("is-hidden");
   lessonContent.classList.remove("is-hidden");
   document.querySelectorAll("[data-scope]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.scope === "schedule");
@@ -864,6 +932,11 @@ function syncViewToRoute() {
   const route = decodeURIComponent(location.hash.replace(/^#/, ""));
   if (route === "rules") {
     showRules({ updateRoute: false });
+    return;
+  }
+
+  if (route === "history") {
+    showHistory({ updateRoute: false });
     return;
   }
 
@@ -968,6 +1041,7 @@ async function loadRemoteContent() {
     updateStats();
     renderSoundUnits();
     renderMonthCalendar();
+    renderHistory();
     if (!lessonContent.classList.contains("is-hidden")) {
       renderPhrases();
       newQuestion();
@@ -1008,6 +1082,122 @@ function renderSoundUnits() {
     }
 
     soundGrid.append(card);
+  });
+}
+
+function getCategoryLabel(category, fallback = "Слово") {
+  const labels = {
+    greeting: "Приветствие",
+    polite: "Вежливость",
+    talk: "Разговор",
+    pronouns: "Личные местоимения",
+    basic: "Самые базовые слова",
+    love: "Про любовь",
+  };
+  return labels[category] || fallback;
+}
+
+function renderHistory() {
+  if (!historyList) return;
+  historyList.innerHTML = "";
+
+  const completedWeeks = getCompletedHistoryWeeks();
+
+  if (!completedWeeks.length) {
+    const empty = document.createElement("article");
+    empty.className = "history-week";
+    empty.innerHTML = `
+      <h3>История пока пустая</h3>
+      <p>Когда закончится неделя обучения и пройдут выходные повторения, здесь появится пройденный материал.</p>
+    `;
+    historyList.append(empty);
+    return;
+  }
+
+  completedWeeks.forEach((weekStart) => {
+    const weekPhrases = getHistoryPhrasesForWeek(weekStart);
+    if (!weekPhrases.length) return;
+
+    const article = document.createElement("article");
+    article.className = "history-week";
+
+    const header = document.createElement("div");
+    header.className = "history-week__header";
+
+    const titleGroup = document.createElement("div");
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = "Пройденная неделя";
+    const title = document.createElement("h3");
+    title.textContent = formatHistoryDateRange(weekStart);
+    const note = document.createElement("p");
+    note.textContent = `Материал недели: ${weekPhrases.length} слов.`;
+    titleGroup.append(eyebrow, title, note);
+
+    const reviewButton = document.createElement("button");
+    reviewButton.className = "secondary-button";
+    reviewButton.type = "button";
+    reviewButton.textContent = "Повторить";
+    reviewButton.addEventListener("click", () => {
+      const reviewDate = new Date(weekStart);
+      reviewDate.setDate(weekStart.getDate() + 5);
+      openDate(reviewDate);
+    });
+
+    header.append(titleGroup, reviewButton);
+
+    const wordList = document.createElement("div");
+    wordList.className = "history-word-list";
+
+    weekPhrases.forEach((phrase) => {
+      const row = document.createElement("div");
+      row.className = "history-word";
+
+      const text = document.createElement("div");
+      const meta = document.createElement("span");
+      meta.textContent = `${formatPhraseDateLabel(phrase)} · ${phrase.tag || getCategoryLabel(phrase.category)}`;
+      const russian = document.createElement("strong");
+      russian.textContent = phrase.russian;
+      const chechen = document.createElement("b");
+      chechen.textContent = phrase.chechen;
+      const pronunciation = document.createElement("em");
+      pronunciation.textContent = phrase.pronunciation;
+      text.append(meta, russian, chechen, pronunciation);
+
+      const actions = document.createElement("div");
+      actions.className = "history-word__actions";
+
+      if (state.learned.has(phrase.id)) {
+        const learned = document.createElement("span");
+        learned.className = "history-learned";
+        learned.textContent = "Выучено";
+        actions.append(learned);
+      }
+
+      if (phrase.audioUrl) {
+        const audioButton = document.createElement("button");
+        audioButton.className = "audio-button";
+        audioButton.type = "button";
+        audioButton.setAttribute("aria-label", `Слушать: ${phrase.chechen}`);
+        audioButton.innerHTML = `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+            <path d="M16 9.5a4 4 0 0 1 0 5" />
+          </svg>
+        `;
+        audioButton.addEventListener("click", () => {
+          triggerVibration(0.45);
+          speak(phrase);
+        });
+        actions.append(audioButton);
+      }
+
+      row.append(text, actions);
+      wordList.append(row);
+    });
+
+    article.append(header, wordList);
+    historyList.append(article);
   });
 }
 
@@ -1062,6 +1252,7 @@ function renderPhrases() {
       updateStats();
       renderMonthCalendar();
       renderPhrases();
+      renderHistory();
     });
 
     phraseGrid.append(card);
@@ -1103,6 +1294,7 @@ function newQuestion() {
         updateStats();
         renderMonthCalendar();
         renderPhrases();
+        renderHistory();
       }
       [...answerOptions.children].forEach((option) => {
         option.disabled = true;
@@ -1189,8 +1381,12 @@ if (phraseGrid) {
 
   document.querySelector("#next-question").addEventListener("click", newQuestion);
   document.querySelector("#back-to-calendar").addEventListener("click", showCalendar);
-  document.querySelector("#open-rules").addEventListener("click", showRules);
+  document.querySelectorAll("#open-rules, #open-rules-bottom").forEach((button) => {
+    button.addEventListener("click", showRules);
+  });
+  document.querySelector("#open-history")?.addEventListener("click", showHistory);
   document.querySelector("#back-from-rules").addEventListener("click", showCalendar);
+  document.querySelector("#back-from-history")?.addEventListener("click", showCalendar);
   document.querySelector("#prev-month").addEventListener("click", () => {
     state.calendarMonth -= 1;
     if (state.calendarMonth < 0) {
@@ -1244,6 +1440,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.1.0").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.1.1").catch(() => {});
   });
 }

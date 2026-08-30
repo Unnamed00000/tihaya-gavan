@@ -485,6 +485,118 @@ body.settings-open {
   font-weight: 900;
 }
 
+.calendar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.calendar-actions .rules-button,
+.calendar-actions .secondary-button {
+  min-height: 48px;
+  margin-top: 0;
+}
+
+.history-screen {
+  min-height: calc(100vh - 114px);
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.history-week {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-strong);
+  box-shadow: 0 12px 30px rgba(31, 37, 29, 0.08);
+}
+
+.history-week__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.history-week h3 {
+  margin: 0 0 4px;
+  font-size: clamp(24px, 4vw, 34px);
+  line-height: 1.05;
+}
+
+.history-week p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.history-word-list {
+  display: grid;
+  gap: 8px;
+}
+
+.history-word {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.history-word > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.history-word span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.history-word strong {
+  color: var(--ink);
+  font-size: 17px;
+}
+
+.history-word b {
+  color: var(--accent-readable);
+  font-size: 20px;
+}
+
+.history-word em {
+  color: var(--muted);
+  font-style: normal;
+  line-height: 1.35;
+}
+
+.history-word__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.history-learned {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  background: rgba(31, 122, 82, 0.12);
+  color: var(--accent-readable) !important;
+  white-space: nowrap;
+}
+
 .rules-screen .letters-panel {
   margin-top: 14px;
 }
@@ -1704,6 +1816,15 @@ body[data-theme="dark"] .admin-day-summary {
     width: 100%;
   }
 
+  .calendar-actions {
+    display: grid;
+  }
+
+  .calendar-actions .rules-button,
+  .calendar-actions .secondary-button {
+    width: 100%;
+  }
+
   .month-weekdays,
   .month-calendar {
     grid-template-columns: 32px repeat(7, minmax(0, 1fr));
@@ -1730,6 +1851,23 @@ body[data-theme="dark"] .admin-day-summary {
 
   .lesson-topbar {
     display: grid;
+  }
+
+  .history-week__header,
+  .history-word {
+    grid-template-columns: 1fr;
+  }
+
+  .history-week__header {
+    display: grid;
+  }
+
+  .history-week__header .secondary-button {
+    width: 100%;
+  }
+
+  .history-word__actions {
+    justify-content: space-between;
   }
 
   h1 {

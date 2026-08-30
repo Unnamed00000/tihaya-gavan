@@ -540,6 +540,9 @@ function renderPhrasesAdmin() {
           { value: "greeting", label: "Приветствие" },
           { value: "polite", label: "Вежливость" },
           { value: "talk", label: "Разговор" },
+          { value: "pronouns", label: "Личные местоимения" },
+          { value: "basic", label: "Самые базовые слова" },
+          { value: "love", label: "Про любовь" },
         ],
         (value) => {
           phrase.category = value;
@@ -715,7 +718,7 @@ addPhraseButton.addEventListener("click", () => {
     id: `phrase-${Date.now()}`,
     date: formatAdminDateKey(activeDate),
     day: activeDay,
-    category: "talk",
+    category: "basic",
     tag: "Разговор",
     russian: "",
     chechen: "",

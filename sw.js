@@ -1,4 +1,4 @@
-const CACHE_NAME = "tihaya-gavan-v24";
+const CACHE_NAME = "tihaya-gavan-v25";
 const APP_SHELL = [
   "./",
   "./index.html",

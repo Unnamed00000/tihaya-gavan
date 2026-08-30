@@ -16,7 +16,7 @@
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png" />
-    <link rel="stylesheet" href="./styles.css?v=2.1.0" />
+    <link rel="stylesheet" href="./styles.css?v=2.1.1" />
   </head>
   <body>
     <main class="app-shell">
@@ -86,6 +86,10 @@
           <div id="month-calendar" class="month-calendar" aria-label="Календарь месяца"></div>
         </div>
 
+        <nav class="calendar-actions" aria-label="Разделы обучения">
+          <button id="open-rules-bottom" class="rules-button" type="button">Правила</button>
+          <button id="open-history" class="secondary-button" type="button">История</button>
+        </nav>
       </section>
 
       <section id="rules-screen" class="rules-screen is-hidden" aria-labelledby="letters-title">
@@ -115,6 +119,24 @@
           </div>
           <div id="sound-grid" class="sound-grid" aria-live="polite"></div>
         </section>
+      </section>
+
+      <section id="history-screen" class="history-screen is-hidden" aria-labelledby="history-title">
+        <div class="lesson-topbar">
+          <button id="back-from-history" class="back-button" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 12H5m6-6-6 6 6 6" />
+            </svg>
+            К календарю
+          </button>
+          <div>
+            <p class="eyebrow">История</p>
+            <h2 id="history-title">Пройденный материал</h2>
+            <p>Здесь сохраняются завершённые недели, чтобы можно было вернуться и повторить слова.</p>
+          </div>
+        </div>
+
+        <div id="history-list" class="history-list" aria-live="polite"></div>
       </section>
 
       <section id="lesson-content" class="lesson-content is-hidden" aria-label="Материал дня">
@@ -185,6 +207,9 @@
                 <button class="segment" data-category="greeting" type="button">Приветствие</button>
                 <button class="segment" data-category="polite" type="button">Вежливость</button>
                 <button class="segment" data-category="talk" type="button">Разговор</button>
+                <button class="segment" data-category="pronouns" type="button">Местоимения</button>
+                <button class="segment" data-category="basic" type="button">Базовые</button>
+                <button class="segment" data-category="love" type="button">Про любовь</button>
               </div>
             </div>
 
@@ -232,7 +257,7 @@
         <div class="settings-info">
           <div>
             <span>Версия программы</span>
-            <strong id="app-version">2.1.0</strong>
+            <strong id="app-version">2.1.1</strong>
           </div>
           <div class="creator-box">
             <span>Создатель программы</span>
@@ -336,6 +361,6 @@
       </article>
     </template>
 
-    <script defer src="./app.js?v=2.1.0"></script>
+    <script defer src="./app.js?v=2.1.1"></script>
   </body>
 </html>
