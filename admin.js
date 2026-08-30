@@ -3,6 +3,7 @@ const contentKey = window.tihayaContentStorageKey || "tihayaContent";
 const contentDraftKey = window.tihayaContentDraftStorageKey || "tihayaContentDraft";
 const factoryDefaults = window.tihayaFactoryDefaults || { soundUnits: [], phrases: [], lessonSettings: [], daySettings: [] };
 const remoteContentUrl = window.tihayaRemoteContentUrl || "./data/content.json";
+const starterPhraseIds = new Set(window.tihayaStarterPhraseIds || []);
 const dayOptions = [
   { value: 0, short: "Пн", label: "Понедельник", mode: "lesson" },
   { value: 1, short: "Вт", label: "Вторник", mode: "lesson" },
@@ -174,13 +175,15 @@ function normalizePhraseSchedule(phrase) {
 }
 
 function normalizePhrases(items = []) {
-  return items.map((phrase) => normalizePhraseSchedule({ ...phrase }));
+  return items
+    .filter((phrase) => !starterPhraseIds.has(phrase?.id))
+    .map((phrase) => normalizePhraseSchedule({ ...phrase }));
 }
 
 function mergeContentWithFactoryDefaults(nextContent) {
   const mergedContent = {
     soundUnits: nextContent?.soundUnits?.length ? nextContent.soundUnits : clone(factoryDefaults.soundUnits),
-    phrases: normalizePhrases(nextContent?.phrases?.length ? nextContent.phrases : clone(factoryDefaults.phrases)),
+    phrases: normalizePhrases(Array.isArray(nextContent?.phrases) ? nextContent.phrases : []),
     lessonSettings: normalizeLessonSettings(nextContent?.lessonSettings, nextContent?.daySettings || factoryDefaults.daySettings),
   };
   const existingKeys = new Set(mergedContent.soundUnits.map(getSoundKey));
@@ -936,10 +939,15 @@ exportButton.addEventListener("click", downloadContentJson);
 importInput.addEventListener("change", () => importContentJson(importInput.files?.[0]));
 
 resetButton.addEventListener("click", () => {
-  content = clone(factoryDefaults);
+  content = mergeContentWithFactoryDefaults({
+    soundUnits: clone(factoryDefaults.soundUnits),
+    phrases: [],
+    lessonSettings: [],
+    daySettings: factoryDefaults.daySettings,
+  });
   removeStorageItem(contentKey);
   removeStorageItem(contentDraftKey);
-  feedback.textContent = "Сброшено к начальному материалу.";
+  feedback.textContent = "Слова очищены. Остались только правила произношения.";
   renderAdmin();
 });
 

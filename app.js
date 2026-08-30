@@ -350,7 +350,34 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.1.4";
+const appVersion = "2.1.5";
+const starterPhraseIds = new Set([
+  "salam",
+  "marshalla",
+  "morning",
+  "day",
+  "evening",
+  "goodbye",
+  "thanks",
+  "welcome",
+  "excuse",
+  "wait",
+  "yes",
+  "no",
+  "maybe",
+  "repeat",
+  "write",
+  "howareyou",
+  "fine",
+  "name",
+  "myname",
+  "nice",
+  "understand",
+  "dontunderstand",
+  "dontknow",
+  "speakchechen",
+  "little",
+]);
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35", lightText: "#0f4d35", darkText: "#8ce0b4" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63", lightText: "#155e63", darkText: "#8bdde2" },
@@ -381,6 +408,11 @@ function addMissingDefaultSoundUnits() {
   });
 }
 
+function removeStarterPhrases(items) {
+  return (Array.isArray(items) ? items : []).filter((phrase) => !starterPhraseIds.has(phrase?.id));
+}
+
+phrases.splice(0, phrases.length, ...removeStarterPhrases(phrases));
 lessonSettings.splice(0, lessonSettings.length, ...normalizeLessonSettings([], daySettings));
 normalizePhraseSchedules(phrases);
 
@@ -388,11 +420,12 @@ window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases, 
 window.tihayaContentStorageKey = contentStorageKey;
 window.tihayaContentDraftStorageKey = contentDraftStorageKey;
 window.tihayaRemoteContentUrl = remoteContentUrl;
+window.tihayaStarterPhraseIds = [...starterPhraseIds];
 
 try {
   const savedContent = JSON.parse(localStorage.getItem(contentStorageKey) || "null");
   if (savedContent?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...savedContent.soundUnits);
-  if (savedContent?.phrases?.length) phrases.splice(0, phrases.length, ...savedContent.phrases);
+  if (Array.isArray(savedContent?.phrases)) phrases.splice(0, phrases.length, ...removeStarterPhrases(savedContent.phrases));
   lessonSettings.splice(
     0,
     lessonSettings.length,
@@ -476,7 +509,7 @@ function normalizeLessonSettings(nextSettings = [], legacySettings = []) {
 
 function applySharedContent(content) {
   if (content?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...content.soundUnits);
-  if (content?.phrases?.length) phrases.splice(0, phrases.length, ...content.phrases);
+  if (Array.isArray(content?.phrases)) phrases.splice(0, phrases.length, ...removeStarterPhrases(content.phrases));
   lessonSettings.splice(0, lessonSettings.length, ...normalizeLessonSettings(content?.lessonSettings, content?.daySettings));
   normalizePhraseSchedules(phrases);
   addMissingDefaultSoundUnits();
@@ -1439,6 +1472,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.1.4").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.1.5").catch(() => {});
   });
 }
