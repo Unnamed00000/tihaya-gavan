@@ -83,6 +83,17 @@ const saveButton = document.querySelector("#save-content");
 const exportButton = document.querySelector("#export-content");
 const resetButton = document.querySelector("#reset-content");
 const importInput = document.querySelector("#import-content");
+const dateActionModal = document.querySelector("#date-action-modal");
+const dateActionTitle = document.querySelector("#date-action-title");
+const dateActionNote = document.querySelector("#date-action-note");
+const clearDateButton = document.querySelector("#clear-date-content");
+const copyDateButton = document.querySelector("#copy-date-content");
+const moveDateButton = document.querySelector("#move-date-content");
+const closeDateActionButton = document.querySelector("#close-date-action");
+let actionSourceDate = null;
+let pendingDateAction = null;
+let longPressTimer = null;
+let suppressNextDateClick = false;
 
 function getSoundKey(unit) {
   return `${unit.title || ""}|${unit.formula || ""}`.toLocaleLowerCase("ru-RU");
@@ -324,6 +335,116 @@ function importContentJson(file) {
   reader.readAsText(file);
 }
 
+function closeDateActionModal() {
+  dateActionModal?.classList.add("is-hidden");
+  actionSourceDate = null;
+}
+
+function openDateActionModal(date) {
+  if (getAdminCalendarDayIndex(date) > 4) {
+    feedback.textContent = "В выходные новые уроки не ставятся. Выбери дату с понедельника по пятницу.";
+    return;
+  }
+
+  actionSourceDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const sourcePhrases = getPhrasesForAdminDate(actionSourceDate);
+  if (dateActionTitle) dateActionTitle.textContent = formatAdminLongDate(actionSourceDate);
+  if (dateActionNote) {
+    dateActionNote.textContent = sourcePhrases.length
+      ? `В этой дате ${sourcePhrases.length} слов. Можно очистить, скопировать или переместить их на другую дату.`
+      : "В этой дате слов пока нет. Можно очистить день или выбрать другую дату.";
+  }
+  dateActionModal?.classList.remove("is-hidden");
+  clearDateButton?.focus();
+}
+
+function copyPhraseToDate(phrase, targetDate) {
+  const dateKey = formatAdminDateKey(targetDate);
+  return normalizePhraseSchedule({
+    ...phrase,
+    id: `phrase-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    date: dateKey,
+    day: Math.min(4, getAdminCalendarDayIndex(targetDate)),
+  });
+}
+
+function clearLessonDate(date, options = {}) {
+  const dateKey = formatAdminDateKey(date);
+  const beforeCount = content.phrases.length;
+  content.phrases = content.phrases.filter((phrase) => getPhraseDateKey(phrase) !== dateKey);
+  if (options.disable !== false && getAdminCalendarDayIndex(date) <= 4) {
+    setAdminDateEnabled(date, false);
+  }
+  return beforeCount - content.phrases.length;
+}
+
+function beginDateTransfer(mode) {
+  if (!actionSourceDate) return;
+  const sourcePhrases = getPhrasesForAdminDate(actionSourceDate);
+  if (!sourcePhrases.length) {
+    feedback.textContent = "В этой дате нет слов для копирования или перемещения.";
+    closeDateActionModal();
+    return;
+  }
+
+  pendingDateAction = {
+    mode,
+    sourceDate: new Date(actionSourceDate),
+    sourceEnabled: isAdminDateEnabled(actionSourceDate),
+  };
+  feedback.textContent =
+    mode === "copy"
+      ? "Теперь нажми дату, куда скопировать слова."
+      : "Теперь нажми дату, куда переместить слова.";
+  closeDateActionModal();
+}
+
+function finishPendingDateAction(targetDate) {
+  if (!pendingDateAction) return false;
+  if (getAdminCalendarDayIndex(targetDate) > 4) {
+    feedback.textContent = "Выбери дату с понедельника по пятницу. В выходные ставится повторение.";
+    return true;
+  }
+
+  const sourceDate = pendingDateAction.sourceDate;
+  const sourceKey = formatAdminDateKey(sourceDate);
+  const targetKey = formatAdminDateKey(targetDate);
+  if (sourceKey === targetKey) {
+    feedback.textContent = "Это та же самая дата. Выбери другую дату.";
+    return true;
+  }
+
+  const sourcePhrases = getPhrasesForAdminDate(sourceDate);
+  if (!sourcePhrases.length) {
+    feedback.textContent = "В исходной дате уже нет слов.";
+    pendingDateAction = null;
+    renderAdmin();
+    return true;
+  }
+
+  if (pendingDateAction.mode === "copy") {
+    content.phrases.push(...sourcePhrases.map((phrase) => copyPhraseToDate(phrase, targetDate)));
+    setAdminDateEnabled(targetDate, pendingDateAction.sourceEnabled);
+    feedback.textContent = `Скопировано слов: ${sourcePhrases.length}. Скачай content.json и загрузи его в папку data на GitHub.`;
+  } else {
+    const targetDay = Math.min(4, getAdminCalendarDayIndex(targetDate));
+    sourcePhrases.forEach((phrase) => {
+      phrase.date = targetKey;
+      phrase.day = targetDay;
+    });
+    setAdminDateEnabled(targetDate, pendingDateAction.sourceEnabled);
+    setAdminDateEnabled(sourceDate, false);
+    feedback.textContent = `Перемещено слов: ${sourcePhrases.length}. Скачай content.json и загрузи его в папку data на GitHub.`;
+  }
+
+  pendingDateAction = null;
+  activeDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+  activeDay = getAdminCalendarDayIndex(activeDate);
+  persistDraft();
+  renderAdmin();
+  return true;
+}
+
 function makeField(labelText, value, onInput, type = "text") {
   const label = document.createElement("label");
   label.className = "admin-field";
@@ -405,9 +526,31 @@ function renderDayBoard() {
       button.classList.toggle("is-review", isWeekendDate && isCurrentMonth);
       button.classList.toggle("is-disabled-day", !isWeekendDate && (!dateIsEnabled || !phrasesForDay.length) && isCurrentMonth);
       button.disabled = !isCurrentMonth;
-      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : dateIsEnabled && phrasesForDay.length ? `${phrasesForDay.length}/5` : "Нет ур."}</span>`;
+      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : dateIsEnabled && phrasesForDay.length ? `${phrasesForDay.length}/${phrasesForDay.length}` : "Нет ур."}</span>`;
       button.setAttribute("aria-label", `${dateKey}: ${dayOptions[dayIndex].label}`);
-      button.addEventListener("click", () => selectAdminDate(date));
+      button.addEventListener("pointerdown", () => {
+        if (!isCurrentMonth || isWeekendDate) return;
+        window.clearTimeout(longPressTimer);
+        longPressTimer = window.setTimeout(() => {
+          suppressNextDateClick = true;
+          openDateActionModal(date);
+        }, 620);
+      });
+      button.addEventListener("pointerup", () => window.clearTimeout(longPressTimer));
+      button.addEventListener("pointerleave", () => window.clearTimeout(longPressTimer));
+      button.addEventListener("pointercancel", () => window.clearTimeout(longPressTimer));
+      button.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        openDateActionModal(date);
+      });
+      button.addEventListener("click", () => {
+        if (suppressNextDateClick) {
+          suppressNextDateClick = false;
+          return;
+        }
+        if (finishPendingDateAction(date)) return;
+        selectAdminDate(date);
+      });
       adminMonthCalendar.append(button);
     });
   }
@@ -474,7 +617,9 @@ function renderDaySummary() {
     heading.textContent = activeDateLabel;
 
     const text = document.createElement("span");
-    text.textContent = `Для этой конкретной даты желательно 5 слов. Сейчас: ${currentCount}/5. Следующий ${day.label.toLowerCase()} будет отдельным уроком со своими словами.`;
+    text.textContent = currentCount
+      ? `Для этой конкретной даты стоит ${currentCount} слов. На календаре будет ${currentCount}/${currentCount}. Следующий ${day.label.toLowerCase()} будет отдельным уроком со своими словами.`
+      : `Для этой конкретной даты слов пока нет. Следующий ${day.label.toLowerCase()} будет отдельным уроком со своими словами.`;
 
     const toggle = document.createElement("label");
     toggle.className = "admin-day-toggle";
@@ -516,9 +661,13 @@ function renderPhrasesAdmin() {
     return;
   }
 
-  visiblePhrases.forEach(({ phrase, index }) => {
+  visiblePhrases.forEach(({ phrase, index }, position) => {
     const card = document.createElement("article");
     card.className = "admin-edit-card";
+
+    const numberBadge = document.createElement("span");
+    numberBadge.className = "admin-word-number";
+    numberBadge.textContent = String(position + 1);
 
     const title = document.createElement("h2");
     title.textContent = phrase.russian || "Новое слово";
@@ -580,7 +729,7 @@ function renderPhrasesAdmin() {
       renderAdmin();
     });
 
-    card.append(title, fields, remove);
+    card.append(numberBadge, title, fields, remove);
     phraseSection.append(card);
   });
 }
@@ -710,6 +859,31 @@ document.querySelector("#admin-next-month")?.addEventListener("click", () => {
     adminCalendarYear += 1;
   }
   renderAdmin();
+});
+
+clearDateButton?.addEventListener("click", () => {
+  if (!actionSourceDate) return;
+  const removedCount = clearLessonDate(actionSourceDate);
+  pendingDateAction = null;
+  activeDate = new Date(actionSourceDate.getFullYear(), actionSourceDate.getMonth(), actionSourceDate.getDate());
+  activeDay = getAdminCalendarDayIndex(activeDate);
+  persistDraft();
+  closeDateActionModal();
+  feedback.textContent = removedCount
+    ? `Дата очищена: удалено слов ${removedCount}. Урок выключен.`
+    : "Дата очищена. Урок выключен.";
+  renderAdmin();
+});
+
+copyDateButton?.addEventListener("click", () => beginDateTransfer("copy"));
+moveDateButton?.addEventListener("click", () => beginDateTransfer("move"));
+closeDateActionButton?.addEventListener("click", closeDateActionModal);
+dateActionModal?.querySelector("[data-close-date-action]")?.addEventListener("click", closeDateActionModal);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !dateActionModal?.classList.contains("is-hidden")) {
+    closeDateActionModal();
+  }
 });
 
 addPhraseButton.addEventListener("click", () => {

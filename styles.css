@@ -1548,16 +1548,92 @@ body[data-theme="dark"] .admin-day-toggle input:checked + i {
   font-weight: 900;
 }
 
+.date-action-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 38;
+  display: grid;
+  place-items: end center;
+  padding: 16px;
+}
+
+.date-action-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(9, 14, 11, 0.48);
+}
+
+.date-action-sheet {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px 16px var(--radius) var(--radius);
+  background: var(--paper-strong);
+  box-shadow: var(--shadow);
+}
+
+.date-action-sheet h2 {
+  margin: 0 0 6px;
+  font-size: 25px;
+  line-height: 1.1;
+}
+
+.date-action-sheet p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.date-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.date-action-buttons .rules-button {
+  min-height: 42px;
+  margin-top: 0;
+}
+
+.date-action-close {
+  width: 100%;
+  margin-top: 8px;
+}
+
 .admin-section {
   display: grid;
   gap: 12px;
 }
 
 .admin-edit-card {
+  position: relative;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #ffffff;
+}
+
+.admin-word-number {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 34px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid rgba(31, 122, 82, 0.24);
+  border-radius: 50%;
+  background: rgba(31, 122, 82, 0.1);
+  color: var(--accent-readable);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.admin-edit-card h2 {
+  padding-right: 44px;
 }
 
 .admin-edit-card h2,
@@ -1719,6 +1795,10 @@ body[data-theme="dark"] .admin-day-summary {
 
   .admin-field-grid,
   .audio-row {
+    grid-template-columns: 1fr;
+  }
+
+  .date-action-buttons {
     grid-template-columns: 1fr;
   }
 

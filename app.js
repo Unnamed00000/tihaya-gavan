@@ -350,7 +350,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.1.3";
+const appVersion = "2.1.4";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35", lightText: "#0f4d35", darkText: "#8ce0b4" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63", lightText: "#155e63", darkText: "#8bdde2" },
@@ -826,7 +826,7 @@ function updateScheduleCopy() {
     }
 
     scheduleTitle.textContent = `Материал на ${dayName}.`;
-    scheduleSubtitle.textContent = "Сегодняшний урок: 5 слов дня и короткая проверка.";
+    scheduleSubtitle.textContent = `Сегодняшний урок: ${lessonPhrases.length} слов дня и короткая проверка.`;
     lessonKicker.textContent = "Материал дня";
     lessonTitle.textContent = selectedDateLabel;
     lessonNote.textContent = "Открыты только слова выбранной даты. Будущие даты появятся в календаре позже.";
@@ -850,9 +850,10 @@ function updateScheduleCopy() {
     return;
   }
 
-  scheduleTitle.textContent = `Сегодня ${fullWeekDays[todayIndex]}: 5 новых слов.`;
+  const todayLessonCount = getLessonPhrasesForDate(todayDate).length;
+  scheduleTitle.textContent = `Сегодня ${fullWeekDays[todayIndex]}: ${todayLessonCount} новых слов.`;
   scheduleSubtitle.textContent =
-    "Будущие дни в календаре закрыты. Когда наступит новый день, откроются еще 5 слов; на выходных будет повторение всей недели.";
+    "Будущие дни в календаре закрыты. Когда наступит новый день, откроются слова этой даты; на выходных будет повторение всей недели.";
 }
 
 function clearSelectedDay() {
@@ -1438,6 +1439,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.1.3").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.1.4").catch(() => {});
   });
 }

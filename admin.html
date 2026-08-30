@@ -13,7 +13,7 @@
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png" />
-    <link rel="stylesheet" href="./styles.css?v=2.1.3" />
+    <link rel="stylesheet" href="./styles.css?v=2.1.4" />
   </head>
   <body>
     <main class="app-shell admin-shell">
@@ -39,7 +39,8 @@
           <h1 id="admin-title">Выбери день для редактирования</h1>
           <p>
             Здесь видны все дни. В клиентской части будущие даты закрыты, а здесь
-            можно заранее подготовить слова, правила и аудио.
+            можно заранее подготовить слова, правила и аудио. Удержи дату, чтобы
+            очистить, скопировать или переместить её слова.
           </p>
         </div>
 
@@ -110,6 +111,23 @@
       </section>
     </main>
 
+    <div id="date-action-modal" class="date-action-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="date-action-title">
+      <div class="date-action-backdrop" data-close-date-action></div>
+      <section class="date-action-sheet" aria-label="Действия с датой">
+        <div>
+          <p class="eyebrow">Действия с датой</p>
+          <h2 id="date-action-title">Выбранный день</h2>
+          <p id="date-action-note">Можно очистить урок или перенести слова на другую дату.</p>
+        </div>
+        <div class="date-action-buttons">
+          <button id="clear-date-content" class="danger-button" type="button">Очистить</button>
+          <button id="copy-date-content" class="secondary-button" type="button">Копировать</button>
+          <button id="move-date-content" class="rules-button" type="button">Переместить</button>
+        </div>
+        <button id="close-date-action" class="secondary-button date-action-close" type="button">Отмена</button>
+      </section>
+    </div>
+
     <div id="settings-modal" class="settings-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div class="settings-backdrop" data-close-settings></div>
       <section class="settings-sheet" aria-label="Настройки приложения">
@@ -128,7 +146,7 @@
         <div class="settings-info">
           <div>
             <span>Версия программы</span>
-            <strong id="app-version">2.1.3</strong>
+            <strong id="app-version">2.1.4</strong>
           </div>
           <div class="creator-box">
             <span>Создатель программы</span>
@@ -200,7 +218,7 @@
       </section>
     </div>
 
-    <script defer src="./app.js?v=2.1.3"></script>
-    <script defer src="./admin.js?v=2.1.3"></script>
+    <script defer src="./app.js?v=2.1.4"></script>
+    <script defer src="./admin.js?v=2.1.4"></script>
   </body>
 </html>
