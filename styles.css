@@ -131,12 +131,12 @@ body[data-theme="dark"] .lesson-content {
 }
 
 .brand-flag {
-  width: 58px;
-  height: 42px;
+  width: 68px;
+  height: 48px;
   flex: 0 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: var(--radius);
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   background: var(--green-deep);
   box-shadow: 0 10px 22px rgba(15, 77, 53, 0.18);
