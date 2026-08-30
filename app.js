@@ -1,4 +1,11 @@
 const weekDays = ["Пн", "Вт", "Ср", "Чт", "Пт"];
+const daySettings = [
+  { day: 0, enabled: true },
+  { day: 1, enabled: true },
+  { day: 2, enabled: true },
+  { day: 3, enabled: true },
+  { day: 4, enabled: true },
+];
 const calendarWeekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 const fullWeekDays = ["понедельник", "вторник", "среду", "четверг", "пятницу"];
 const monthNames = [
@@ -342,7 +349,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.0.8";
+const appVersion = "2.0.9";
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35", lightText: "#0f4d35", darkText: "#8ce0b4" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63", lightText: "#155e63", darkText: "#8bdde2" },
@@ -373,7 +380,7 @@ function addMissingDefaultSoundUnits() {
   });
 }
 
-window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases }));
+window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases, daySettings }));
 window.tihayaContentStorageKey = contentStorageKey;
 window.tihayaContentDraftStorageKey = contentDraftStorageKey;
 window.tihayaRemoteContentUrl = remoteContentUrl;
@@ -382,6 +389,7 @@ try {
   const savedContent = JSON.parse(localStorage.getItem(contentStorageKey) || "null");
   if (savedContent?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...savedContent.soundUnits);
   if (savedContent?.phrases?.length) phrases.splice(0, phrases.length, ...savedContent.phrases);
+  if (savedContent?.daySettings?.length) daySettings.splice(0, daySettings.length, ...normalizeDaySettings(savedContent.daySettings));
   addMissingDefaultSoundUnits();
 } catch {
   localStorage.removeItem(contentStorageKey);
@@ -397,13 +405,21 @@ function loadSettings() {
   }
 }
 
-window.tihayaContent = { soundUnits, phrases };
+window.tihayaContent = { soundUnits, phrases, daySettings };
+
+function normalizeDaySettings(nextSettings = []) {
+  return [0, 1, 2, 3, 4].map((day) => {
+    const setting = nextSettings.find((item) => Number(item.day) === day);
+    return { day, enabled: setting?.enabled !== false };
+  });
+}
 
 function applySharedContent(content) {
   if (content?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...content.soundUnits);
   if (content?.phrases?.length) phrases.splice(0, phrases.length, ...content.phrases);
+  daySettings.splice(0, daySettings.length, ...normalizeDaySettings(content?.daySettings));
   addMissingDefaultSoundUnits();
-  window.tihayaContent = { soundUnits, phrases };
+  window.tihayaContent = { soundUnits, phrases, daySettings };
 }
 
 const state = {
@@ -577,7 +593,8 @@ function getSchedulePhrases() {
   const date = state.selectedDate || todayDate;
   const dayIndex = getCalendarDayIndex(date);
 
-  if (dayIndex > 4) return phrases;
+  if (dayIndex > 4) return getPublishedPhrases();
+  if (!isLearningDayEnabled(dayIndex)) return [];
   return phrases.filter((phrase) => phrase.day === dayIndex);
 }
 
@@ -589,8 +606,17 @@ function isCalendarDateAvailable(date) {
   return startOfDay(date).getTime() <= todayDate.getTime();
 }
 
+function isLearningDayEnabled(dayIndex) {
+  if (dayIndex > 4) return true;
+  return daySettings.find((item) => Number(item.day) === Number(dayIndex))?.enabled !== false;
+}
+
+function getPublishedPhrases() {
+  return phrases.filter((phrase) => isLearningDayEnabled(Number(phrase.day)));
+}
+
 function getAvailablePhrases() {
-  return phrases.filter((phrase) => isDayAvailable(phrase.day));
+  return phrases.filter((phrase) => isDayAvailable(phrase.day) && isLearningDayEnabled(phrase.day));
 }
 
 function getScopePhrases() {
@@ -627,14 +653,24 @@ function updateScheduleCopy() {
 
     if (dayIndex > 4) {
       scheduleTitle.textContent = "Повторение всей недели.";
-      scheduleSubtitle.textContent = "В выходной день новые слова не открываются: повтори весь материал с понедельника по пятницу.";
+      scheduleSubtitle.textContent =
+        "В выходной день новые слова не открываются: повтори материал тех дней, которые включены в админке.";
       lessonKicker.textContent = "Повторение";
       lessonTitle.textContent = selectedDateLabel;
-      lessonNote.textContent = "Открыты все 25 слов недели для закрепления.";
+      lessonNote.textContent = "Открыты все слова включённых дней недели для закрепления.";
       return;
     }
 
     const dayName = fullWeekDays[dayIndex];
+    if (!isLearningDayEnabled(dayIndex)) {
+      scheduleTitle.textContent = "Этот день пока выключен.";
+      scheduleSubtitle.textContent = "В админке этот день отключен, поэтому новые слова клиенту пока не показываются.";
+      lessonKicker.textContent = "День выключен";
+      lessonTitle.textContent = selectedDateLabel;
+      lessonNote.textContent = "Когда включишь этот день в админке и загрузишь content.json на GitHub, слова появятся здесь.";
+      return;
+    }
+
     scheduleTitle.textContent = `Материал на ${dayName}.`;
     scheduleSubtitle.textContent = "Сегодняшний урок: 5 слов дня и короткая проверка.";
     lessonKicker.textContent = "Материал дня";
@@ -646,7 +682,14 @@ function updateScheduleCopy() {
   if (isWeekend) {
     scheduleTitle.textContent = "Выходные: повторение всей недели.";
     scheduleSubtitle.textContent =
-      "Сегодня новые слова не открываются. Повтори все 25 слов, которые были с понедельника по пятницу.";
+      "Сегодня новые слова не открываются. Повтори слова из включённых дней с понедельника по пятницу.";
+    return;
+  }
+
+  if (!isLearningDayEnabled(todayIndex)) {
+    scheduleTitle.textContent = "Сегодняшний день пока выключен.";
+    scheduleSubtitle.textContent =
+      "Новые слова появятся, когда этот день будет включён в админке и обновленный content.json будет загружен на GitHub.";
     return;
   }
 
@@ -766,7 +809,12 @@ function renderMonthCalendar() {
       const isCurrentMonth = date.getMonth() === state.calendarMonth;
       const isAvailable = isCalendarDateAvailable(date);
       const isWeekendDate = dayIndex > 4;
-      const lessonPhrases = isWeekendDate ? phrases : phrases.filter((phrase) => phrase.day === dayIndex);
+      const dayIsEnabled = isLearningDayEnabled(dayIndex);
+      const lessonPhrases = isWeekendDate
+        ? getPublishedPhrases()
+        : dayIsEnabled
+          ? phrases.filter((phrase) => phrase.day === dayIndex)
+          : [];
       const learnedCountForDate = lessonPhrases.filter((phrase) => state.learned.has(phrase.id)).length;
 
       const item = document.createElement("button");
@@ -777,12 +825,15 @@ function renderMonthCalendar() {
       item.classList.toggle("is-today", isSameDate(date, todayDate));
       item.classList.toggle("is-selected", state.selectedDate && isSameDate(date, state.selectedDate));
       item.classList.toggle("is-locked", !isAvailable && isCurrentMonth);
+      item.classList.toggle("is-disabled-day", !isWeekendDate && isAvailable && isCurrentMonth && !dayIsEnabled);
       item.classList.toggle("is-review", isWeekendDate && isAvailable && isCurrentMonth);
 
       const status = !isCurrentMonth
         ? ""
         : !isAvailable
           ? "Закр."
+          : !isWeekendDate && !dayIsEnabled
+            ? "Выкл."
           : isWeekendDate
             ? "Повт."
             : `${learnedCountForDate}/${lessonPhrases.length}`;
@@ -810,7 +861,7 @@ async function loadRemoteContent() {
     if (!response.ok) return;
     const remoteContent = await response.json();
     applySharedContent(remoteContent);
-    localStorage.setItem(contentStorageKey, JSON.stringify({ soundUnits, phrases }));
+    localStorage.setItem(contentStorageKey, JSON.stringify({ soundUnits, phrases, daySettings }));
     updateScheduleCopy();
     updateStats();
     renderSoundUnits();
@@ -865,7 +916,11 @@ function renderPhrases() {
   if (!visiblePhrases.length) {
     const empty = document.createElement("p");
     empty.className = "pronunciation";
-    empty.textContent = "Такой фразы пока нет в этом наборе.";
+    const dayIndex = state.selectedDate ? getCalendarDayIndex(state.selectedDate) : todayIndex;
+    empty.textContent =
+      state.scope === "schedule" && dayIndex <= 4 && !isLearningDayEnabled(dayIndex)
+        ? "Этот день пока выключен в админке. Когда его включат, слова появятся здесь."
+        : "Такой фразы пока нет в этом наборе.";
     phraseGrid.append(empty);
     return;
   }
@@ -917,7 +972,13 @@ function shuffle(items) {
 
 function newQuestion() {
   const quizPool = getScopePhrases();
-  if (!quizPool.length) return;
+  if (!quizPool.length) {
+    state.quiz = null;
+    quizFeedback.textContent = "";
+    questionRussian.textContent = "Пока нет слов для тренировки.";
+    answerOptions.innerHTML = "";
+    return;
+  }
   const correct = quizPool[Math.floor(Math.random() * quizPool.length)];
   const wrongAnswers = shuffle(getAvailablePhrases().filter((phrase) => phrase.id !== correct.id)).slice(0, 3);
   state.quiz = correct;
@@ -1081,6 +1142,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.0.8").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.0.9").catch(() => {});
   });
 }

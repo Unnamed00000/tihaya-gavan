@@ -71,6 +71,28 @@
       "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/K+I.mp3"
     }
   ],
+  "daySettings": [
+    {
+      "day": 0,
+      "enabled": true
+    },
+    {
+      "day": 1,
+      "enabled": true
+    },
+    {
+      "day": 2,
+      "enabled": true
+    },
+    {
+      "day": 3,
+      "enabled": true
+    },
+    {
+      "day": 4,
+      "enabled": true
+    }
+  ],
   "phrases": [
     {
       "id": "salam",

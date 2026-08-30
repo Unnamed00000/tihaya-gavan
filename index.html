@@ -16,7 +16,7 @@
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png" />
-    <link rel="stylesheet" href="./styles.css?v=2.0.8" />
+    <link rel="stylesheet" href="./styles.css?v=2.0.9" />
   </head>
   <body>
     <main class="app-shell">
@@ -45,6 +45,19 @@
             до своего времени.
           </p>
         </div>
+
+        <section class="priority-rule" aria-labelledby="priority-rule-title">
+          <div>
+            <p class="eyebrow">Самое главное правило</p>
+            <h2 id="priority-rule-title">Сначала изучи правила</h2>
+            <p>
+              Это очень важно: в правилах находятся буквы и звуки, без которых
+              чеченские слова будут читаться неправильно.
+            </p>
+          </div>
+          <button id="open-rules" class="rules-button" type="button">Открыть правила</button>
+        </section>
+
         <div class="calendar-card">
           <div class="month-toolbar">
             <button id="prev-month" class="icon-button" type="button" aria-label="Предыдущий месяц">
@@ -73,7 +86,6 @@
           <div id="month-calendar" class="month-calendar" aria-label="Календарь месяца"></div>
         </div>
 
-        <button id="open-rules" class="rules-button" type="button">Правила</button>
       </section>
 
       <section id="rules-screen" class="rules-screen is-hidden" aria-labelledby="letters-title">
@@ -220,7 +232,7 @@
         <div class="settings-info">
           <div>
             <span>Версия программы</span>
-            <strong id="app-version">2.0.8</strong>
+            <strong id="app-version">2.0.9</strong>
           </div>
           <div class="creator-box">
             <span>Создатель программы</span>
@@ -324,6 +336,6 @@
       </article>
     </template>
 
-    <script defer src="./app.js?v=2.0.8"></script>
+    <script defer src="./app.js?v=2.0.9"></script>
   </body>
 </html>

@@ -112,6 +112,7 @@ function mergeContentWithFactoryDefaults(nextContent) {
   const mergedContent = {
     soundUnits: nextContent?.soundUnits?.length ? nextContent.soundUnits : clone(factoryDefaults.soundUnits),
     phrases: nextContent?.phrases?.length ? nextContent.phrases : clone(factoryDefaults.phrases),
+    daySettings: normalizeDaySettings(nextContent?.daySettings || factoryDefaults.daySettings),
   };
   const existingKeys = new Set(mergedContent.soundUnits.map(getSoundKey));
 
@@ -124,8 +125,28 @@ function mergeContentWithFactoryDefaults(nextContent) {
   return mergedContent;
 }
 
+function normalizeDaySettings(nextSettings = []) {
+  return dayOptions.slice(0, 5).map((day) => {
+    const setting = nextSettings.find((item) => Number(item.day) === day.value);
+    return { day: day.value, enabled: setting?.enabled !== false };
+  });
+}
+
+function isAdminDayEnabled(dayIndex) {
+  if (dayIndex > 4) return true;
+  return content.daySettings.find((item) => Number(item.day) === Number(dayIndex))?.enabled !== false;
+}
+
+function setAdminDayEnabled(dayIndex, enabled) {
+  const nextSettings = normalizeDaySettings(content.daySettings);
+  const setting = nextSettings.find((item) => Number(item.day) === Number(dayIndex));
+  if (setting) setting.enabled = enabled;
+  content.daySettings = nextSettings;
+}
+
 function getCleanContent() {
   return {
+    daySettings: normalizeDaySettings(content.daySettings),
     soundUnits: content.soundUnits.map((unit) => ({
       formula: unit.formula || "",
       title: unit.title || "",
@@ -280,7 +301,10 @@ function renderDayBoard() {
       const dayIndex = getAdminCalendarDayIndex(date);
       const isCurrentMonth = date.getMonth() === adminCalendarMonth;
       const isWeekendDate = dayIndex > 4;
-      const phrasesForDay = isWeekendDate ? content.phrases : content.phrases.filter((phrase) => Number(phrase.day) === dayIndex);
+      const dayIsEnabled = isAdminDayEnabled(dayIndex);
+      const phrasesForDay = isWeekendDate
+        ? content.phrases.filter((phrase) => isAdminDayEnabled(Number(phrase.day)))
+        : content.phrases.filter((phrase) => Number(phrase.day) === dayIndex);
 
       const button = document.createElement("button");
       button.type = "button";
@@ -289,8 +313,9 @@ function renderDayBoard() {
       button.classList.toggle("is-today", isSameAdminDate(date, adminToday));
       button.classList.toggle("is-selected", activeDay === dayIndex && isCurrentMonth);
       button.classList.toggle("is-review", isWeekendDate && isCurrentMonth);
+      button.classList.toggle("is-disabled-day", !isWeekendDate && !dayIsEnabled && isCurrentMonth);
       button.disabled = !isCurrentMonth;
-      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : `${phrasesForDay.length}/5`}</span>`;
+      button.innerHTML = `<strong>${date.getDate()}</strong><span>${isWeekendDate ? "Повт." : dayIsEnabled ? `${phrasesForDay.length}/5` : "Выкл."}</span>`;
       button.setAttribute("aria-label", `${date.getDate()}: ${dayOptions[dayIndex].label}`);
       button.addEventListener("click", () => selectAdminDay(dayIndex));
       adminMonthCalendar.append(button);
@@ -313,17 +338,58 @@ function getActivePhrasesWithIndex() {
 }
 
 function renderDaySummary() {
+  daySummary.innerHTML = "";
+
   const day = dayOptions.find((item) => item.value === activeDay);
   const weekdayCounts = dayOptions
     .slice(0, 5)
     .map((item) => content.phrases.filter((phrase) => Number(phrase.day) === item.value).length);
-  const totalWeekPhrases = weekdayCounts.reduce((sum, count) => sum + count, 0);
+  const totalWeekPhrases = weekdayCounts.reduce(
+    (sum, count, dayIndex) => sum + (isAdminDayEnabled(dayIndex) ? count : 0),
+    0,
+  );
 
   if (activeDay > 4) {
-    daySummary.innerHTML = `<strong>${day.label}: повторение</strong><span>Клиент увидит все слова недели: ${totalWeekPhrases}. Новые слова в выходные не добавляются, но ниже можно редактировать слова всей недели.</span>`;
+    const heading = document.createElement("strong");
+    heading.textContent = `${day.label}: повторение`;
+
+    const text = document.createElement("span");
+    text.textContent = `Клиент увидит слова только из включённых дней недели: ${totalWeekPhrases}. Новые слова в выходные не добавляются, но ниже можно редактировать слова всей недели.`;
+
+    daySummary.append(heading, text);
   } else {
     const currentCount = weekdayCounts[activeDay];
-    daySummary.innerHTML = `<strong>${day.label}</strong><span>Для этого дня желательно 5 слов. Сейчас: ${currentCount}/5. Поля ниже можно менять сразу.</span>`;
+    const dayIsEnabled = isAdminDayEnabled(activeDay);
+
+    const heading = document.createElement("strong");
+    heading.textContent = day.label;
+
+    const text = document.createElement("span");
+    text.textContent = `Для этого дня желательно 5 слов. Сейчас: ${currentCount}/5. Поля ниже можно менять сразу.`;
+
+    const toggle = document.createElement("label");
+    toggle.className = "admin-day-toggle";
+
+    const toggleText = document.createElement("span");
+    toggleText.innerHTML = `<b>Показывать клиенту</b><em>${dayIsEnabled ? "Включено: когда этот день наступит, слова появятся у клиента." : "Выключено: клиент не увидит новые слова этого дня."}</em>`;
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = dayIsEnabled;
+    input.addEventListener("change", () => {
+      setAdminDayEnabled(activeDay, input.checked);
+      persistDraft();
+      feedback.textContent = input.checked
+        ? "День включён. Скачай content.json и загрузи его в папку data на GitHub."
+        : "День выключен. Скачай content.json и загрузи его в папку data на GitHub.";
+      renderAdmin();
+    });
+
+    const switchTrack = document.createElement("i");
+    switchTrack.setAttribute("aria-hidden", "true");
+
+    toggle.append(toggleText, input, switchTrack);
+    daySummary.append(heading, text, toggle);
   }
 
   addPhraseButton.disabled = activeDay > 4;
