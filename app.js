@@ -350,7 +350,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.2.2";
+const appVersion = "2.2.3";
 const starterPhraseIds = new Set([
   "salam",
   "marshalla",
@@ -939,6 +939,8 @@ function clearSelectedDay() {
 function showCalendar(options = {}) {
   if (options.updateRoute !== false) setRoute("calendar", options.replaceRoute);
   clearSelectedDay();
+  state.calendarYear = todayDate.getFullYear();
+  state.calendarMonth = todayDate.getMonth();
   state.scope = "schedule";
   state.search = "";
   searchInput.value = "";
@@ -1523,6 +1525,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.2.2").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.2.3").catch(() => {});
   });
 }
