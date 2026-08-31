@@ -350,7 +350,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.1.8";
+const appVersion = "2.1.9";
 const starterPhraseIds = new Set([
   "salam",
   "marshalla",
@@ -1472,6 +1472,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.1.8").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.1.9").catch(() => {});
   });
 }

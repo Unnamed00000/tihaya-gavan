@@ -345,11 +345,18 @@ function importContentJson(file) {
 function closeDateActionModal() {
   dateActionModal?.classList.add("is-hidden");
   actionSourceDate = null;
+  suppressNextDateClick = false;
 }
 
 function closeClearConfirmModal() {
   clearConfirmModal?.classList.add("is-hidden");
   actionSourceDate = null;
+  suppressNextDateClick = false;
+}
+
+function setDatePickerMode(mode) {
+  adminMonthCalendar?.classList.toggle("is-picking-target", Boolean(mode));
+  document.body.dataset.adminDateAction = mode || "";
 }
 
 function openDateActionModal(date) {
@@ -418,6 +425,8 @@ function beginDateTransfer(mode) {
     sourceDate: new Date(actionSourceDate),
     sourceEnabled: isAdminDateEnabled(actionSourceDate),
   };
+  suppressNextDateClick = false;
+  setDatePickerMode(mode);
   feedback.textContent =
     mode === "copy"
       ? "Теперь нажми дату, куда скопировать слова."
@@ -444,6 +453,7 @@ function finishPendingDateAction(targetDate) {
   if (!sourcePhrases.length) {
     feedback.textContent = "В исходной дате уже нет слов.";
     pendingDateAction = null;
+    setDatePickerMode(null);
     renderAdmin();
     return true;
   }
@@ -464,6 +474,7 @@ function finishPendingDateAction(targetDate) {
   }
 
   pendingDateAction = null;
+  setDatePickerMode(null);
   activeDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
   activeDay = getAdminCalendarDayIndex(activeDate);
   persistDraft();
@@ -570,6 +581,11 @@ function renderDayBoard() {
         openDateActionModal(date);
       });
       button.addEventListener("click", () => {
+        if (pendingDateAction) {
+          window.clearTimeout(longPressTimer);
+          suppressNextDateClick = false;
+          if (finishPendingDateAction(date)) return;
+        }
         if (suppressNextDateClick) {
           suppressNextDateClick = false;
           return;
@@ -887,12 +903,31 @@ document.querySelector("#admin-next-month")?.addEventListener("click", () => {
   renderAdmin();
 });
 
-clearDateButton?.addEventListener("click", openClearConfirmModal);
+function bindAdminTap(button, handler) {
+  if (!button) return;
+  let lastTouchAt = 0;
+  button.addEventListener(
+    "touchend",
+    (event) => {
+      event.preventDefault();
+      lastTouchAt = Date.now();
+      handler(event);
+    },
+    { passive: false },
+  );
+  button.addEventListener("click", (event) => {
+    if (Date.now() - lastTouchAt < 700) return;
+    handler(event);
+  });
+}
 
-confirmClearButton?.addEventListener("click", () => {
+bindAdminTap(clearDateButton, openClearConfirmModal);
+
+bindAdminTap(confirmClearButton, () => {
   if (!actionSourceDate) return;
   const removedCount = clearLessonDate(actionSourceDate);
   pendingDateAction = null;
+  setDatePickerMode(null);
   activeDate = new Date(actionSourceDate.getFullYear(), actionSourceDate.getMonth(), actionSourceDate.getDate());
   activeDay = getAdminCalendarDayIndex(activeDate);
   persistDraft();
@@ -903,11 +938,11 @@ confirmClearButton?.addEventListener("click", () => {
   renderAdmin();
 });
 
-cancelClearButton?.addEventListener("click", closeClearConfirmModal);
+bindAdminTap(cancelClearButton, closeClearConfirmModal);
 clearConfirmModal?.querySelector("[data-close-clear-confirm]")?.addEventListener("click", closeClearConfirmModal);
-copyDateButton?.addEventListener("click", () => beginDateTransfer("copy"));
-moveDateButton?.addEventListener("click", () => beginDateTransfer("move"));
-closeDateActionButton?.addEventListener("click", closeDateActionModal);
+bindAdminTap(copyDateButton, () => beginDateTransfer("copy"));
+bindAdminTap(moveDateButton, () => beginDateTransfer("move"));
+bindAdminTap(closeDateActionButton, closeDateActionModal);
 dateActionModal?.querySelector("[data-close-date-action]")?.addEventListener("click", closeDateActionModal);
 
 document.addEventListener("keydown", (event) => {
