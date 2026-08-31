@@ -363,8 +363,8 @@ function openDateActionModal(date) {
   if (dateActionTitle) dateActionTitle.textContent = formatAdminLongDate(actionSourceDate);
   if (dateActionNote) {
     dateActionNote.textContent = sourcePhrases.length
-      ? `В этой дате ${sourcePhrases.length} слов. Можно очистить, скопировать или переместить их на другую дату.`
-      : "В этой дате слов пока нет. Можно очистить день или выбрать другую дату.";
+      ? `В этой дате ${sourcePhrases.length} слов. Можно полностью очистить дату, скопировать или переместить её слова.`
+      : "В этой дате слов пока нет. Можно выключить и очистить дату или выбрать другую дату.";
   }
   dateActionModal?.classList.remove("is-hidden");
   clearDateButton?.focus();
@@ -375,8 +375,8 @@ function openClearConfirmModal() {
   const sourcePhrases = getPhrasesForAdminDate(actionSourceDate);
   if (clearConfirmNote) {
     clearConfirmNote.textContent = sourcePhrases.length
-      ? `Будет удалено слов: ${sourcePhrases.length}. Урок этой даты выключится. Это действие нельзя отменить.`
-      : "В этой дате слов нет, но урок этой даты выключится.";
+      ? `Будет полностью очищена выбранная дата: удалятся все ${sourcePhrases.length} слов и их аудиоссылки, урок этой даты выключится. Это действие нельзя отменить.`
+      : "В этой дате слов нет, но дата всё равно будет очищена и урок этой даты выключится.";
   }
   dateActionModal?.classList.add("is-hidden");
   clearConfirmModal?.classList.remove("is-hidden");
@@ -398,6 +398,7 @@ function clearLessonDate(date, options = {}) {
   const beforeCount = content.phrases.length;
   content.phrases = content.phrases.filter((phrase) => getPhraseDateKey(phrase) !== dateKey);
   if (options.disable !== false && getAdminCalendarDayIndex(date) <= 4) {
+    content.lessonSettings = normalizeLessonSettings(content.lessonSettings).filter((item) => item.date !== dateKey);
     setAdminDateEnabled(date, false);
   }
   return beforeCount - content.phrases.length;
@@ -897,8 +898,8 @@ confirmClearButton?.addEventListener("click", () => {
   persistDraft();
   closeClearConfirmModal();
   feedback.textContent = removedCount
-    ? `Дата очищена: удалено слов ${removedCount}. Урок выключен.`
-    : "Дата очищена. Урок выключен.";
+    ? `Дата полностью очищена: удалено слов ${removedCount}. Урок выключен.`
+    : "Дата полностью очищена. Урок выключен.";
   renderAdmin();
 });
 
