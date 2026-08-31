@@ -91,6 +91,10 @@ const clearDateButton = document.querySelector("#clear-date-content");
 const copyDateButton = document.querySelector("#copy-date-content");
 const moveDateButton = document.querySelector("#move-date-content");
 const closeDateActionButton = document.querySelector("#close-date-action");
+const clearConfirmModal = document.querySelector("#clear-confirm-modal");
+const clearConfirmNote = document.querySelector("#clear-confirm-note");
+const confirmClearButton = document.querySelector("#confirm-clear-date");
+const cancelClearButton = document.querySelector("#cancel-clear-date");
 let actionSourceDate = null;
 let pendingDateAction = null;
 let longPressTimer = null;
@@ -343,6 +347,11 @@ function closeDateActionModal() {
   actionSourceDate = null;
 }
 
+function closeClearConfirmModal() {
+  clearConfirmModal?.classList.add("is-hidden");
+  actionSourceDate = null;
+}
+
 function openDateActionModal(date) {
   if (getAdminCalendarDayIndex(date) > 4) {
     feedback.textContent = "В выходные новые уроки не ставятся. Выбери дату с понедельника по пятницу.";
@@ -359,6 +368,19 @@ function openDateActionModal(date) {
   }
   dateActionModal?.classList.remove("is-hidden");
   clearDateButton?.focus();
+}
+
+function openClearConfirmModal() {
+  if (!actionSourceDate) return;
+  const sourcePhrases = getPhrasesForAdminDate(actionSourceDate);
+  if (clearConfirmNote) {
+    clearConfirmNote.textContent = sourcePhrases.length
+      ? `Будет удалено слов: ${sourcePhrases.length}. Урок этой даты выключится. Это действие нельзя отменить.`
+      : "В этой дате слов нет, но урок этой даты выключится.";
+  }
+  dateActionModal?.classList.add("is-hidden");
+  clearConfirmModal?.classList.remove("is-hidden");
+  confirmClearButton?.focus();
 }
 
 function copyPhraseToDate(phrase, targetDate) {
@@ -864,26 +886,34 @@ document.querySelector("#admin-next-month")?.addEventListener("click", () => {
   renderAdmin();
 });
 
-clearDateButton?.addEventListener("click", () => {
+clearDateButton?.addEventListener("click", openClearConfirmModal);
+
+confirmClearButton?.addEventListener("click", () => {
   if (!actionSourceDate) return;
   const removedCount = clearLessonDate(actionSourceDate);
   pendingDateAction = null;
   activeDate = new Date(actionSourceDate.getFullYear(), actionSourceDate.getMonth(), actionSourceDate.getDate());
   activeDay = getAdminCalendarDayIndex(activeDate);
   persistDraft();
-  closeDateActionModal();
+  closeClearConfirmModal();
   feedback.textContent = removedCount
     ? `Дата очищена: удалено слов ${removedCount}. Урок выключен.`
     : "Дата очищена. Урок выключен.";
   renderAdmin();
 });
 
+cancelClearButton?.addEventListener("click", closeClearConfirmModal);
+clearConfirmModal?.querySelector("[data-close-clear-confirm]")?.addEventListener("click", closeClearConfirmModal);
 copyDateButton?.addEventListener("click", () => beginDateTransfer("copy"));
 moveDateButton?.addEventListener("click", () => beginDateTransfer("move"));
 closeDateActionButton?.addEventListener("click", closeDateActionModal);
 dateActionModal?.querySelector("[data-close-date-action]")?.addEventListener("click", closeDateActionModal);
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !clearConfirmModal?.classList.contains("is-hidden")) {
+    closeClearConfirmModal();
+    return;
+  }
   if (event.key === "Escape" && !dateActionModal?.classList.contains("is-hidden")) {
     closeDateActionModal();
   }

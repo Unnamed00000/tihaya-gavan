@@ -1593,6 +1593,10 @@ body[data-theme="dark"] .admin-day-toggle input:checked + i {
   margin-top: 16px;
 }
 
+.date-action-buttons--confirm {
+  grid-template-columns: 1fr 1fr;
+}
+
 .date-action-buttons .rules-button {
   min-height: 42px;
   margin-top: 0;
