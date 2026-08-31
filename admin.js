@@ -95,6 +95,13 @@ const clearConfirmModal = document.querySelector("#clear-confirm-modal");
 const clearConfirmNote = document.querySelector("#clear-confirm-note");
 const confirmClearButton = document.querySelector("#confirm-clear-date");
 const cancelClearButton = document.querySelector("#cancel-clear-date");
+const transferDateModal = document.querySelector("#transfer-date-modal");
+const transferDateTitle = document.querySelector("#transfer-date-title");
+const transferDateNote = document.querySelector("#transfer-date-note");
+const transferDateInput = document.querySelector("#transfer-date-input");
+const confirmTransferButton = document.querySelector("#confirm-transfer-date");
+const pickTransferOnCalendarButton = document.querySelector("#pick-transfer-on-calendar");
+const cancelTransferButton = document.querySelector("#cancel-transfer-date");
 let actionSourceDate = null;
 let pendingDateAction = null;
 let longPressTimer = null;
@@ -359,6 +366,15 @@ function setDatePickerMode(mode) {
   document.body.dataset.adminDateAction = mode || "";
 }
 
+function closeTransferDateModal(options = {}) {
+  transferDateModal?.classList.add("is-hidden");
+  if (options.keepPending !== true) {
+    pendingDateAction = null;
+    setDatePickerMode(null);
+  }
+  suppressNextDateClick = false;
+}
+
 function openDateActionModal(date) {
   if (getAdminCalendarDayIndex(date) > 4) {
     feedback.textContent = "В выходные новые уроки не ставятся. Выбери дату с понедельника по пятницу.";
@@ -373,6 +389,8 @@ function openDateActionModal(date) {
       ? `В этой дате ${sourcePhrases.length} слов. Можно полностью очистить дату, скопировать или переместить её слова.`
       : "В этой дате слов пока нет. Можно выключить и очистить дату или выбрать другую дату.";
   }
+  if (copyDateButton) copyDateButton.disabled = !sourcePhrases.length;
+  if (moveDateButton) moveDateButton.disabled = !sourcePhrases.length;
   dateActionModal?.classList.remove("is-hidden");
   clearDateButton?.focus();
 }
@@ -411,6 +429,14 @@ function clearLessonDate(date, options = {}) {
   return beforeCount - content.phrases.length;
 }
 
+function getDefaultTransferDate(sourceDate) {
+  const nextDate = new Date(sourceDate);
+  do {
+    nextDate.setDate(nextDate.getDate() + 1);
+  } while (getAdminCalendarDayIndex(nextDate) > 4);
+  return nextDate;
+}
+
 function beginDateTransfer(mode) {
   if (!actionSourceDate) return;
   const sourcePhrases = getPhrasesForAdminDate(actionSourceDate);
@@ -427,11 +453,24 @@ function beginDateTransfer(mode) {
   };
   suppressNextDateClick = false;
   setDatePickerMode(mode);
+  dateActionModal?.classList.add("is-hidden");
+  if (transferDateTitle) {
+    transferDateTitle.textContent = mode === "copy" ? "Куда скопировать слова?" : "Куда переместить слова?";
+  }
+  if (transferDateNote) {
+    transferDateNote.textContent =
+      mode === "copy"
+        ? `Будет скопировано слов: ${sourcePhrases.length}. Выбери дату с понедельника по пятницу.`
+        : `Будет перемещено слов: ${sourcePhrases.length}. Выбери дату с понедельника по пятницу.`;
+  }
+  if (transferDateInput) transferDateInput.value = formatAdminDateKey(getDefaultTransferDate(actionSourceDate));
+  transferDateModal?.classList.remove("is-hidden");
   feedback.textContent =
     mode === "copy"
       ? "Теперь нажми дату, куда скопировать слова."
       : "Теперь нажми дату, куда переместить слова.";
-  closeDateActionModal();
+  actionSourceDate = null;
+  transferDateInput?.focus();
 }
 
 function finishPendingDateAction(targetDate) {
@@ -475,11 +514,41 @@ function finishPendingDateAction(targetDate) {
 
   pendingDateAction = null;
   setDatePickerMode(null);
+  closeTransferDateModal({ keepPending: true });
   activeDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
   activeDay = getAdminCalendarDayIndex(activeDate);
+  adminCalendarYear = targetDate.getFullYear();
+  adminCalendarMonth = targetDate.getMonth();
   persistDraft();
   renderAdmin();
   return true;
+}
+
+function submitPendingDateTransfer() {
+  if (!pendingDateAction) {
+    closeTransferDateModal();
+    return;
+  }
+  const targetDate = parseAdminDateKey(transferDateInput?.value || "");
+  if (!targetDate) {
+    feedback.textContent = "Выбери дату назначения.";
+    if (transferDateNote) transferDateNote.textContent = "Нужно выбрать дату с понедельника по пятницу.";
+    transferDateInput?.focus();
+    return;
+  }
+  if (getAdminCalendarDayIndex(targetDate) > 4) {
+    feedback.textContent = "В выходные новые уроки не ставятся. Выбери понедельник, вторник, среду, четверг или пятницу.";
+    if (transferDateNote) transferDateNote.textContent = "Суббота и воскресенье оставлены для повторения.";
+    transferDateInput?.focus();
+    return;
+  }
+  if (formatAdminDateKey(pendingDateAction.sourceDate) === formatAdminDateKey(targetDate)) {
+    feedback.textContent = "Это та же самая дата. Выбери другую дату.";
+    if (transferDateNote) transferDateNote.textContent = "Дата назначения должна отличаться от исходной даты.";
+    transferDateInput?.focus();
+    return;
+  }
+  finishPendingDateAction(targetDate);
 }
 
 function makeField(labelText, value, onInput, type = "text") {
@@ -944,10 +1013,35 @@ bindAdminTap(copyDateButton, () => beginDateTransfer("copy"));
 bindAdminTap(moveDateButton, () => beginDateTransfer("move"));
 bindAdminTap(closeDateActionButton, closeDateActionModal);
 dateActionModal?.querySelector("[data-close-date-action]")?.addEventListener("click", closeDateActionModal);
+bindAdminTap(confirmTransferButton, submitPendingDateTransfer);
+bindAdminTap(pickTransferOnCalendarButton, () => {
+  if (!pendingDateAction) {
+    closeTransferDateModal();
+    return;
+  }
+  const mode = pendingDateAction.mode;
+  closeTransferDateModal({ keepPending: true });
+  setDatePickerMode(mode);
+  feedback.textContent =
+    mode === "copy"
+      ? "Нажми дату в календаре, куда скопировать слова."
+      : "Нажми дату в календаре, куда переместить слова.";
+  adminMonthCalendar?.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+bindAdminTap(cancelTransferButton, closeTransferDateModal);
+transferDateModal?.querySelector("[data-close-transfer-date]")?.addEventListener("click", () => closeTransferDateModal());
 
 document.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !transferDateModal?.classList.contains("is-hidden")) {
+    submitPendingDateTransfer();
+    return;
+  }
   if (event.key === "Escape" && !clearConfirmModal?.classList.contains("is-hidden")) {
     closeClearConfirmModal();
+    return;
+  }
+  if (event.key === "Escape" && !transferDateModal?.classList.contains("is-hidden")) {
+    closeTransferDateModal();
     return;
   }
   if (event.key === "Escape" && !dateActionModal?.classList.contains("is-hidden")) {

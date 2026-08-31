@@ -1613,12 +1613,20 @@ body[data-admin-date-action="move"] .admin-feedback {
 }
 
 .date-action-buttons--confirm {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .date-action-buttons .rules-button {
   min-height: 42px;
   margin-top: 0;
+}
+
+.transfer-date-field {
+  margin-top: 14px;
+}
+
+.transfer-date-field input {
+  min-height: 46px;
 }
 
 .date-action-close {

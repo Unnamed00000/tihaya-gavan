@@ -13,7 +13,7 @@
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png" />
-    <link rel="stylesheet" href="./styles.css?v=2.1.9" />
+    <link rel="stylesheet" href="./styles.css?v=2.2.0" />
   </head>
   <body>
     <main class="app-shell admin-shell">
@@ -143,6 +143,26 @@
       </section>
     </div>
 
+    <div id="transfer-date-modal" class="date-action-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="transfer-date-title">
+      <div class="date-action-backdrop" data-close-transfer-date></div>
+      <section class="date-action-sheet" aria-label="Выбор даты">
+        <div>
+          <p class="eyebrow">Дата назначения</p>
+          <h2 id="transfer-date-title">Куда перенести слова?</h2>
+          <p id="transfer-date-note">Выбери рабочий день с понедельника по пятницу.</p>
+        </div>
+        <label class="admin-field transfer-date-field">
+          <span>Дата</span>
+          <input id="transfer-date-input" type="date" />
+        </label>
+        <div class="date-action-buttons date-action-buttons--confirm">
+          <button id="confirm-transfer-date" class="rules-button" type="button">Выполнить</button>
+          <button id="pick-transfer-on-calendar" class="secondary-button" type="button">Выбрать на календаре</button>
+          <button id="cancel-transfer-date" class="secondary-button" type="button">Отмена</button>
+        </div>
+      </section>
+    </div>
+
     <div id="settings-modal" class="settings-modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <div class="settings-backdrop" data-close-settings></div>
       <section class="settings-sheet" aria-label="Настройки приложения">
@@ -218,7 +238,7 @@
         <div class="settings-info">
           <div>
             <span>Версия программы</span>
-            <strong id="app-version">2.1.9</strong>
+            <strong id="app-version">2.2.0</strong>
           </div>
           <div class="creator-box">
             <span>Создатель программы</span>
@@ -233,7 +253,7 @@
       </section>
     </div>
 
-    <script defer src="./app.js?v=2.1.9"></script>
-    <script defer src="./admin.js?v=2.1.9"></script>
+    <script defer src="./app.js?v=2.2.0"></script>
+    <script defer src="./admin.js?v=2.2.0"></script>
   </body>
 </html>
