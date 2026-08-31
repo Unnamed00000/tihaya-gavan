@@ -1,0 +1,220 @@
+{
+  "soundUnits": [
+    {
+      "formula": "I = э",
+      "title": "I",
+      "hint": "Это отдельная палочка, не английская буква. Для первого обучения держи звук как короткое «э».",
+      "example": "Пример: Iуьйре",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/I.mp3"
+    },
+    {
+      "formula": "ъ = э",
+      "title": "Ъ",
+      "hint": "Это не мягкий знак. Он похож на знак без своей обычной русской роли и читается ближе к короткому «э».",
+      "example": "Пример: XIaъ",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/b.mp3"
+    },
+    {
+      "formula": "х + ь = хь",
+      "title": "Хь",
+      "hint": "Не читай как русскую Х. Это более мягкий горловой звук: язык и горло работают иначе.",
+      "example": "Пример: хьо, хьан, хьоьга",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/X+b.mp3"
+    },
+    {
+      "formula": "а + ь = аь",
+      "title": "Аь",
+      "hint": "Мягкий знак здесь не читается отдельно. Он меняет гласную и делает новый звук.",
+      "example": "Пример: аь, хьаь",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/A+b.mp3"
+    },
+    {
+      "formula": "о + ь = оь",
+      "title": "Оь",
+      "hint": "Это не обычное русское О. Звук произносится ближе и мягче.",
+      "example": "Пример: хьоьга",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/O+b.mp3"
+    },
+    {
+      "formula": "у + ь = уь",
+      "title": "Уь",
+      "hint": "Это отдельная гласная. Не растягивай как русское У, держи звук мягче.",
+      "example": "Пример: суьйре, Iуьйре",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/Y+b.mp3"
+    },
+    {
+      "formula": "к + х = кх",
+      "title": "Кх",
+      "hint": "Глубокий звук К, произносится дальше в горле, чем обычная русская К.",
+      "example": "Пример: кхета, кхита",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/K+x.mp3"
+    },
+    {
+      "formula": "г + I = гI",
+      "title": "ГI",
+      "hint": "Буква I здесь не английская ай. Это палочка: она показывает особый горловой звук.",
+      "example": "Пример: гIуллакхаш",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/G+I.mp3"
+    },
+    {
+      "formula": "х + I = хI",
+      "title": "ХI",
+      "hint": "Это не ХЬ. Палочка делает звук более глубоким и резким.",
+      "example": "Пример: хIаъ, хIун",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/X+I.mp3"
+    },
+    {
+      "formula": "к + I = кI",
+      "title": "КI",
+      "hint": "Резкое К со смычкой. Звук короткий, не надо добавлять гласную после него.",
+      "example": "Пример: кIеззиг",
+      "audioUrl": "https://github.com/Unnamed00000/tihaya-gavan/raw/refs/heads/main/audio/K+I.mp3"
+    }
+  ],
+  "phrases": [
+    {
+      "id": "phrase-1788126369074",
+      "date": "2026-08-31",
+      "day": 0,
+      "category": "pronouns",
+      "tag": "Личные местоимения",
+      "russian": "Я",
+      "chechen": "со",
+      "pronunciation": "со",
+      "query": "",
+      "audioUrl": ""
+    },
+    {
+      "id": "phrase-1788126372013",
+      "date": "2026-08-31",
+      "day": 0,
+      "category": "pronouns",
+      "tag": "Личные местоимения",
+      "russian": "Ты",
+      "chechen": "хьо",
+      "pronunciation": "хьо",
+      "query": "",
+      "audioUrl": ""
+    },
+    {
+      "id": "phrase-1788126373804",
+      "date": "2026-08-31",
+      "day": 0,
+      "category": "pronouns",
+      "tag": "Личные местоимения",
+      "russian": "Он / Она / Оно",
+      "chechen": "и / иза",
+      "pronunciation": "и / иза",
+      "query": "",
+      "audioUrl": ""
+    },
+    {
+      "id": "phrase-1788126375285",
+      "date": "2026-08-31",
+      "day": 0,
+      "category": "pronouns",
+      "tag": "Личные местоимения",
+      "russian": "Мы, (включая тебя)",
+      "chechen": "вай",
+      "pronunciation": "вай",
+      "query": "",
+      "audioUrl": ""
+    },
+    {
+      "id": "phrase-1788126377262",
+      "date": "2026-08-31",
+      "day": 0,
+      "category": "pronouns",
+      "tag": "Личные местоимения",
+      "russian": "Мы, (без тебя)",
+      "chechen": "тхо",
+      "pronunciation": "тхо",
+      "query": "",
+      "audioUrl": ""
+    },
+    {
+      "id": "phrase-1788126380191",
+      "date": "2026-08-31",
+      "day": 0,
+      "category": "pronouns",
+      "tag": "Личные местоимения",
+      "russian": "Вы",
+      "chechen": "шу",
+      "pronunciation": "шу",
+      "query": "",
+      "audioUrl": ""
+    },
+    {
+      "id": "phrase-1788126445112",
+      "date": "2026-08-31",
+      "day": 0,
+      "category": "pronouns",
+      "tag": "Личные местоимения",
+      "russian": "Они",
+      "chechen": "уьш",
+      "pronunciation": "уьш",
+      "query": "",
+      "audioUrl": ""
+    }
+  ],
+  "categories": [
+    {
+      "id": "greeting",
+      "label": "Приветствие"
+    },
+    {
+      "id": "polite",
+      "label": "Вежливость"
+    },
+    {
+      "id": "talk",
+      "label": "Разговор"
+    },
+    {
+      "id": "pronouns",
+      "label": "Личные местоимения"
+    },
+    {
+      "id": "basic",
+      "label": "Самые базовые слова"
+    },
+    {
+      "id": "love",
+      "label": "Про любовь"
+    }
+  ],
+  "lessonSettings": [
+    {
+      "date": "2026-08-24",
+      "enabled": true
+    },
+    {
+      "date": "2026-08-25",
+      "enabled": true
+    },
+    {
+      "date": "2026-08-26",
+      "enabled": true
+    },
+    {
+      "date": "2026-08-27",
+      "enabled": true
+    },
+    {
+      "date": "2026-08-28",
+      "enabled": true
+    },
+    {
+      "date": "2026-09-01",
+      "enabled": false
+    },
+    {
+      "date": "2026-09-02",
+      "enabled": false
+    },
+    {
+      "date": "2026-08-31",
+      "enabled": true
+    }
+  ]
+}
