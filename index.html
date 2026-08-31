@@ -16,7 +16,7 @@
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png" />
-    <link rel="stylesheet" href="./styles.css?v=2.2.1" />
+    <link rel="stylesheet" href="./styles.css?v=2.2.2" />
   </head>
   <body>
     <main class="app-shell">
@@ -201,15 +201,7 @@
                 <button class="segment" data-scope="all" type="button">Доступные</button>
               </div>
 
-              <div class="segmented" role="tablist" aria-label="Категории">
-                <button class="segment is-active" data-category="all" type="button">Все</button>
-                <button class="segment" data-category="greeting" type="button">Приветствие</button>
-                <button class="segment" data-category="polite" type="button">Вежливость</button>
-                <button class="segment" data-category="talk" type="button">Разговор</button>
-                <button class="segment" data-category="pronouns" type="button">Местоимения</button>
-                <button class="segment" data-category="basic" type="button">Базовые</button>
-                <button class="segment" data-category="love" type="button">Про любовь</button>
-              </div>
+              <div id="category-filter" class="segmented" role="tablist" aria-label="Категории"></div>
             </div>
 
             <div id="phrase-grid" class="phrase-grid" aria-live="polite"></div>
@@ -313,7 +305,7 @@
         <div class="settings-info">
           <div>
             <span>Версия программы</span>
-            <strong id="app-version">2.2.1</strong>
+            <strong id="app-version">2.2.2</strong>
           </div>
           <div class="creator-box">
             <span>Создатель программы</span>
@@ -360,6 +352,6 @@
       </article>
     </template>
 
-    <script defer src="./app.js?v=2.2.1"></script>
+    <script defer src="./app.js?v=2.2.2"></script>
   </body>
 </html>

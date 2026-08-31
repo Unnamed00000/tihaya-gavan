@@ -13,7 +13,7 @@
     <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="./icons/icon-512.png" />
-    <link rel="stylesheet" href="./styles.css?v=2.2.1" />
+    <link rel="stylesheet" href="./styles.css?v=2.2.2" />
   </head>
   <body>
     <main class="app-shell admin-shell">
@@ -74,6 +74,7 @@
 
         <div class="admin-tabs" role="tablist" aria-label="Разделы админки">
           <button class="segment is-active" data-admin-tab="phrases" type="button">Слова</button>
+          <button class="segment" data-admin-tab="categories" type="button">Категории</button>
           <button class="segment" data-admin-tab="sounds" type="button">Правила</button>
           <button class="segment" data-admin-tab="audio" type="button">Аудио GitHub</button>
         </div>
@@ -82,6 +83,7 @@
 
         <div class="admin-actions admin-actions--top">
           <button id="add-phrase" class="secondary-button" type="button">Добавить слово</button>
+          <button id="add-category" class="secondary-button" type="button">Добавить категорию</button>
           <button id="add-sound" class="secondary-button" type="button">Добавить правило</button>
           <label class="secondary-button import-button">
             Загрузить content.json
@@ -94,6 +96,7 @@
 
         <div id="admin-day-summary" class="admin-day-summary"></div>
         <section id="admin-phrases" class="admin-section"></section>
+        <section id="admin-categories" class="admin-section is-hidden"></section>
         <section id="admin-sounds" class="admin-section is-hidden"></section>
         <section id="admin-audio" class="admin-section is-hidden">
           <div class="audio-help">
@@ -238,7 +241,7 @@
         <div class="settings-info">
           <div>
             <span>Версия программы</span>
-            <strong id="app-version">2.2.1</strong>
+            <strong id="app-version">2.2.2</strong>
           </div>
           <div class="creator-box">
             <span>Создатель программы</span>
@@ -253,7 +256,7 @@
       </section>
     </div>
 
-    <script defer src="./app.js?v=2.2.1"></script>
-    <script defer src="./admin.js?v=2.2.1"></script>
+    <script defer src="./app.js?v=2.2.2"></script>
+    <script defer src="./admin.js?v=2.2.2"></script>
   </body>
 </html>

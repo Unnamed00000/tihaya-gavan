@@ -4,6 +4,14 @@ const contentDraftKey = window.tihayaContentDraftStorageKey || "tihayaContentDra
 const factoryDefaults = window.tihayaFactoryDefaults || { soundUnits: [], phrases: [], lessonSettings: [], daySettings: [] };
 const remoteContentUrl = window.tihayaRemoteContentUrl || "./data/content.json";
 const starterPhraseIds = new Set(window.tihayaStarterPhraseIds || []);
+const defaultCategories = [
+  { id: "greeting", label: "Приветствие" },
+  { id: "polite", label: "Вежливость" },
+  { id: "talk", label: "Разговор" },
+  { id: "pronouns", label: "Личные местоимения" },
+  { id: "basic", label: "Самые базовые слова" },
+  { id: "love", label: "Про любовь" },
+];
 const dayOptions = [
   { value: 0, short: "Пн", label: "Понедельник", mode: "lesson" },
   { value: 1, short: "Вт", label: "Вторник", mode: "lesson" },
@@ -71,6 +79,7 @@ let adminCalendarYear = adminToday.getFullYear();
 let adminCalendarMonth = adminToday.getMonth();
 
 const phraseSection = document.querySelector("#admin-phrases");
+const categorySection = document.querySelector("#admin-categories");
 const soundSection = document.querySelector("#admin-sounds");
 const audioSection = document.querySelector("#admin-audio");
 const audioList = document.querySelector("#admin-audio-list");
@@ -79,6 +88,7 @@ const adminMonthTitle = document.querySelector("#admin-month-title");
 const daySummary = document.querySelector("#admin-day-summary");
 const feedback = document.querySelector("#admin-feedback");
 const addPhraseButton = document.querySelector("#add-phrase");
+const addCategoryButton = document.querySelector("#add-category");
 const addSoundButton = document.querySelector("#add-sound");
 const saveButton = document.querySelector("#save-content");
 const exportButton = document.querySelector("#export-content");
@@ -191,10 +201,51 @@ function normalizePhrases(items = []) {
     .map((phrase) => normalizePhraseSchedule({ ...phrase }));
 }
 
+function normalizeCategoryId(value, fallbackLabel = "Категория") {
+  const latin = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (latin) return latin;
+  return `category-${String(fallbackLabel || "new").trim().toLowerCase().replace(/\s+/g, "-") || Date.now()}`;
+}
+
+function normalizeCategories(nextCategories = [], phraseItems = []) {
+  const normalized = [];
+  const addCategory = (id, label) => {
+    const categoryId = normalizeCategoryId(id || label);
+    if (!categoryId || normalized.some((item) => item.id === categoryId)) return;
+    normalized.push({ id: categoryId, label: String(label || id || "Категория").trim() || "Категория" });
+  };
+
+  defaultCategories.forEach((category) => addCategory(category.id, category.label));
+  (Array.isArray(nextCategories) ? nextCategories : []).forEach((category) => {
+    if (typeof category === "string") addCategory(category, category);
+    else addCategory(category?.id || category?.value, category?.label || category?.title || category?.name || category?.id);
+  });
+  phraseItems.forEach((phrase) => addCategory(phrase.category, phrase.tag || phrase.category));
+
+  return normalized;
+}
+
+function getCategoryOptions() {
+  return normalizeCategories(content.categories, content.phrases).map((category) => ({
+    value: category.id,
+    label: category.label,
+  }));
+}
+
+function getCategoryLabel(categoryId, fallback = "Разговор") {
+  return getCategoryOptions().find((category) => category.value === categoryId)?.label || fallback;
+}
+
 function mergeContentWithFactoryDefaults(nextContent) {
+  const phrases = normalizePhrases(Array.isArray(nextContent?.phrases) ? nextContent.phrases : []);
   const mergedContent = {
     soundUnits: nextContent?.soundUnits?.length ? nextContent.soundUnits : clone(factoryDefaults.soundUnits),
-    phrases: normalizePhrases(Array.isArray(nextContent?.phrases) ? nextContent.phrases : []),
+    phrases,
+    categories: normalizeCategories(nextContent?.categories || factoryDefaults.categories, phrases),
     lessonSettings: normalizeLessonSettings(nextContent?.lessonSettings, nextContent?.daySettings || factoryDefaults.daySettings),
   };
   const existingKeys = new Set(mergedContent.soundUnits.map(getSoundKey));
@@ -255,8 +306,10 @@ function setAdminDateEnabled(date, enabled) {
 }
 
 function getCleanContent() {
+  const categories = normalizeCategories(content.categories, content.phrases);
   return {
     lessonSettings: normalizeLessonSettings(content.lessonSettings),
+    categories,
     soundUnits: content.soundUnits.map((unit) => ({
       formula: unit.formula || "",
       title: unit.title || "",
@@ -273,7 +326,7 @@ function getCleanContent() {
       date: dateKey,
       day,
       category: phrase.category || "talk",
-      tag: phrase.tag || "Разговор",
+      tag: phrase.tag || getCategoryLabel(phrase.category),
       russian: phrase.russian || "",
       chechen: phrase.chechen || "",
       pronunciation: phrase.pronunciation || "",
@@ -796,16 +849,10 @@ function renderPhrasesAdmin() {
       makeSelect(
         "Категория",
         phrase.category,
-        [
-          { value: "greeting", label: "Приветствие" },
-          { value: "polite", label: "Вежливость" },
-          { value: "talk", label: "Разговор" },
-          { value: "pronouns", label: "Личные местоимения" },
-          { value: "basic", label: "Самые базовые слова" },
-          { value: "love", label: "Про любовь" },
-        ],
+        getCategoryOptions(),
         (value) => {
           phrase.category = value;
+          phrase.tag = getCategoryLabel(value);
         },
       ),
       makeField("Русский текст", phrase.russian, (value) => {
@@ -842,6 +889,70 @@ function renderPhrasesAdmin() {
 
     card.append(numberBadge, title, fields, remove);
     phraseSection.append(card);
+  });
+}
+
+function renderCategoriesAdmin() {
+  categorySection.innerHTML = "";
+  const categories = normalizeCategories(content.categories, content.phrases);
+  content.categories = categories;
+  const defaultIds = new Set(defaultCategories.map((category) => category.id));
+
+  const intro = document.createElement("article");
+  intro.className = "admin-edit-card admin-helper-card";
+  intro.innerHTML = `
+    <h2>Категории слов</h2>
+    <p>Добавь свою категорию, потом она появится в выборе у каждого слова и в фильтрах клиента после загрузки content.json на GitHub.</p>
+  `;
+  categorySection.append(intro);
+
+  categories.forEach((category, index) => {
+    const card = document.createElement("article");
+    card.className = "admin-edit-card";
+
+    const title = document.createElement("h2");
+    title.textContent = category.label || "Категория";
+
+    const fields = document.createElement("div");
+    fields.className = "admin-field-grid";
+    fields.append(
+      makeField("Название категории", category.label, (value) => {
+        category.label = value || "Категория";
+        title.textContent = category.label;
+        content.phrases.forEach((phrase) => {
+          if (phrase.category === category.id) phrase.tag = category.label;
+        });
+      }),
+    );
+
+    const usedCount = content.phrases.filter((phrase) => phrase.category === category.id).length;
+    const meta = document.createElement("p");
+    meta.className = "admin-category-meta";
+    meta.textContent = `Слов в этой категории: ${usedCount}`;
+
+    card.append(title, fields, meta);
+
+    if (!defaultIds.has(category.id)) {
+      const remove = document.createElement("button");
+      remove.className = "danger-button";
+      remove.type = "button";
+      remove.textContent = "Удалить категорию";
+      remove.addEventListener("click", () => {
+        content.categories.splice(index, 1);
+        content.phrases.forEach((phrase) => {
+          if (phrase.category === category.id) {
+            phrase.category = "talk";
+            phrase.tag = getCategoryLabel("talk");
+          }
+        });
+        persistDraft();
+        feedback.textContent = "Категория удалена. Слова из неё перенесены в “Разговор”.";
+        renderAdmin();
+      });
+      card.append(remove);
+    }
+
+    categorySection.append(card);
   });
 }
 
@@ -937,9 +1048,11 @@ function renderAdmin() {
   renderDayBoard();
   renderDaySummary();
   renderPhrasesAdmin();
+  renderCategoriesAdmin();
   renderSoundsAdmin();
   renderAudioAdmin();
   phraseSection.classList.toggle("is-hidden", activeTab !== "phrases");
+  categorySection.classList.toggle("is-hidden", activeTab !== "categories");
   soundSection.classList.toggle("is-hidden", activeTab !== "sounds");
   audioSection.classList.toggle("is-hidden", activeTab !== "audio");
 }
@@ -1071,6 +1184,24 @@ addPhraseButton.addEventListener("click", () => {
   });
 });
 
+addCategoryButton.addEventListener("click", () => {
+  content.categories = normalizeCategories(content.categories, content.phrases);
+  content.categories.push({
+    id: `category-${Date.now()}`,
+    label: "Новая категория",
+  });
+  persistDraft();
+  activeTab = "categories";
+  document.querySelectorAll("[data-admin-tab]").forEach((tab) => {
+    tab.classList.toggle("is-active", tab.dataset.adminTab === "categories");
+  });
+  renderAdmin();
+  feedback.textContent = "Новая категория добавлена. Напиши ей название.";
+  window.requestAnimationFrame(() => {
+    categorySection.lastElementChild?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+});
+
 addSoundButton.addEventListener("click", () => {
   content.soundUnits.push({
     formula: "",
@@ -1102,6 +1233,7 @@ resetButton.addEventListener("click", () => {
   content = mergeContentWithFactoryDefaults({
     soundUnits: clone(factoryDefaults.soundUnits),
     phrases: [],
+    categories: clone(factoryDefaults.categories || defaultCategories),
     lessonSettings: [],
     daySettings: factoryDefaults.daySettings,
   });

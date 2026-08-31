@@ -350,7 +350,7 @@ const contentStorageKey = "tihayaContent";
 const contentDraftStorageKey = "tihayaContentDraft";
 const settingsStorageKey = "tihayaSettings";
 const remoteContentUrl = "./data/content.json";
-const appVersion = "2.2.1";
+const appVersion = "2.2.2";
 const starterPhraseIds = new Set([
   "salam",
   "marshalla",
@@ -378,6 +378,14 @@ const starterPhraseIds = new Set([
   "speakchechen",
   "little",
 ]);
+const defaultCategories = [
+  { id: "greeting", label: "Приветствие" },
+  { id: "polite", label: "Вежливость" },
+  { id: "talk", label: "Разговор" },
+  { id: "pronouns", label: "Личные местоимения" },
+  { id: "basic", label: "Самые базовые слова" },
+  { id: "love", label: "Про любовь" },
+];
 const accentOptions = [
   { name: "Зелёный", deep: "#0f4d35", green: "#1f7a52", theme: "#0f4d35", lightText: "#0f4d35", darkText: "#8ce0b4" },
   { name: "Морской", deep: "#155e63", green: "#23858c", theme: "#155e63", lightText: "#155e63", darkText: "#8bdde2" },
@@ -394,6 +402,7 @@ const defaultSettings = {
   vibrationStrength: 40,
 };
 const defaultSoundUnits = JSON.parse(JSON.stringify(soundUnits));
+const categories = JSON.parse(JSON.stringify(defaultCategories));
 
 function getSoundKey(unit) {
   return `${unit.title || ""}|${unit.formula || ""}`.toLocaleLowerCase("ru-RU");
@@ -412,11 +421,40 @@ function removeStarterPhrases(items) {
   return (Array.isArray(items) ? items : []).filter((phrase) => !starterPhraseIds.has(phrase?.id));
 }
 
+function normalizeCategoryId(value, fallbackLabel = "Категория") {
+  const latin = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (latin) return latin;
+  return `category-${String(fallbackLabel || "new").trim().toLowerCase().replace(/\s+/g, "-") || Date.now()}`;
+}
+
+function normalizeCategories(nextCategories = [], phraseItems = []) {
+  const normalized = [];
+  const addCategory = (id, label) => {
+    const categoryId = normalizeCategoryId(id || label);
+    if (!categoryId || normalized.some((item) => item.id === categoryId)) return;
+    normalized.push({ id: categoryId, label: String(label || id || "Категория").trim() || "Категория" });
+  };
+
+  defaultCategories.forEach((category) => addCategory(category.id, category.label));
+  (Array.isArray(nextCategories) ? nextCategories : []).forEach((category) => {
+    if (typeof category === "string") addCategory(category, category);
+    else addCategory(category?.id || category?.value, category?.label || category?.title || category?.name || category?.id);
+  });
+  phraseItems.forEach((phrase) => addCategory(phrase.category, phrase.tag || phrase.category));
+
+  return normalized;
+}
+
 phrases.splice(0, phrases.length, ...removeStarterPhrases(phrases));
 lessonSettings.splice(0, lessonSettings.length, ...normalizeLessonSettings([], daySettings));
 normalizePhraseSchedules(phrases);
+categories.splice(0, categories.length, ...normalizeCategories([], phrases));
 
-window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases, daySettings, lessonSettings }));
+window.tihayaFactoryDefaults = JSON.parse(JSON.stringify({ soundUnits, phrases, categories, daySettings, lessonSettings }));
 window.tihayaContentStorageKey = contentStorageKey;
 window.tihayaContentDraftStorageKey = contentDraftStorageKey;
 window.tihayaRemoteContentUrl = remoteContentUrl;
@@ -426,6 +464,7 @@ try {
   const savedContent = JSON.parse(localStorage.getItem(contentStorageKey) || "null");
   if (savedContent?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...savedContent.soundUnits);
   if (Array.isArray(savedContent?.phrases)) phrases.splice(0, phrases.length, ...removeStarterPhrases(savedContent.phrases));
+  categories.splice(0, categories.length, ...normalizeCategories(savedContent?.categories, phrases));
   lessonSettings.splice(
     0,
     lessonSettings.length,
@@ -447,7 +486,7 @@ function loadSettings() {
   }
 }
 
-window.tihayaContent = { soundUnits, phrases, daySettings, lessonSettings };
+window.tihayaContent = { soundUnits, phrases, categories, daySettings, lessonSettings };
 
 function normalizeDaySettings(nextSettings = []) {
   return [0, 1, 2, 3, 4].map((day) => {
@@ -510,10 +549,11 @@ function normalizeLessonSettings(nextSettings = [], legacySettings = []) {
 function applySharedContent(content) {
   if (content?.soundUnits?.length) soundUnits.splice(0, soundUnits.length, ...content.soundUnits);
   if (Array.isArray(content?.phrases)) phrases.splice(0, phrases.length, ...removeStarterPhrases(content.phrases));
+  categories.splice(0, categories.length, ...normalizeCategories(content?.categories, phrases));
   lessonSettings.splice(0, lessonSettings.length, ...normalizeLessonSettings(content?.lessonSettings, content?.daySettings));
   normalizePhraseSchedules(phrases);
   addMissingDefaultSoundUnits();
-  window.tihayaContent = { soundUnits, phrases, daySettings, lessonSettings };
+  window.tihayaContent = { soundUnits, phrases, categories, daySettings, lessonSettings };
 }
 
 const state = {
@@ -538,6 +578,7 @@ const template = document.querySelector("#phrase-template");
 const soundGrid = document.querySelector("#sound-grid");
 const soundTemplate = document.querySelector("#sound-template");
 const searchInput = document.querySelector("#search-input");
+const categoryFilter = document.querySelector("#category-filter");
 const learnedCount = document.querySelector("#learned-count");
 const totalCount = document.querySelector("#total-count");
 const totalLabel = document.querySelector("#total-label");
@@ -955,6 +996,7 @@ function openDate(date, options = {}) {
   document.querySelectorAll("[data-category]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.category === "all");
   });
+  renderCategoryFilters();
   updateScheduleCopy();
   updateStats();
   renderMonthCalendar();
@@ -1070,9 +1112,10 @@ async function loadRemoteContent() {
     if (!response.ok) return;
     const remoteContent = await response.json();
     applySharedContent(remoteContent);
-    localStorage.setItem(contentStorageKey, JSON.stringify({ soundUnits, phrases, lessonSettings }));
+    localStorage.setItem(contentStorageKey, JSON.stringify({ soundUnits, phrases, categories, lessonSettings }));
     updateScheduleCopy();
     updateStats();
+    renderCategoryFilters();
     renderSoundUnits();
     renderMonthCalendar();
     renderHistory();
@@ -1120,15 +1163,30 @@ function renderSoundUnits() {
 }
 
 function getCategoryLabel(category, fallback = "Слово") {
-  const labels = {
-    greeting: "Приветствие",
-    polite: "Вежливость",
-    talk: "Разговор",
-    pronouns: "Личные местоимения",
-    basic: "Самые базовые слова",
-    love: "Про любовь",
-  };
-  return labels[category] || fallback;
+  return categories.find((item) => item.id === category)?.label || fallback;
+}
+
+function renderCategoryFilters() {
+  if (!categoryFilter) return;
+  if (state.category !== "all" && !categories.some((category) => category.id === state.category)) {
+    state.category = "all";
+  }
+
+  categoryFilter.innerHTML = "";
+  [{ id: "all", label: "Все" }, ...categories].forEach((category) => {
+    const button = document.createElement("button");
+    button.className = "segment";
+    button.classList.toggle("is-active", state.category === category.id);
+    button.dataset.category = category.id;
+    button.type = "button";
+    button.textContent = category.label;
+    button.addEventListener("click", () => {
+      state.category = category.id;
+      renderCategoryFilters();
+      renderPhrases();
+    });
+    categoryFilter.append(button);
+  });
 }
 
 function renderHistory() {
@@ -1398,15 +1456,7 @@ if (phraseGrid) {
     });
   });
 
-  document.querySelectorAll("[data-category]").forEach((button) => {
-    button.addEventListener("click", () => {
-      state.category = button.dataset.category;
-      document.querySelectorAll("[data-category]").forEach((segment) => {
-        segment.classList.toggle("is-active", segment === button);
-      });
-      renderPhrases();
-    });
-  });
+  renderCategoryFilters();
 
   searchInput.addEventListener("input", (event) => {
     state.search = event.target.value;
@@ -1437,6 +1487,7 @@ if (phraseGrid) {
   });
 
   renderSoundUnits();
+  renderCategoryFilters();
   renderMonthCalendar();
   syncViewToRoute();
   loadRemoteContent();
@@ -1472,6 +1523,6 @@ if ("serviceWorker" in navigator && (location.hostname === "localhost" || locati
   }
 } else if ("serviceWorker" in navigator && location.protocol !== "file:") {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=2.2.1").catch(() => {});
+    navigator.serviceWorker.register("./sw.js?v=2.2.2").catch(() => {});
   });
 }
